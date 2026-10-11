@@ -10,6 +10,8 @@ Local checks on Apple Silicon macOS with an existing Sikarugir Wine 11 prefix:
 - Real diagnostics: Wine smoke passed; Korean mappings 16/16; Neople URL handler points to the installed patch.
 - Original Sikarugir `Info.plist` matched the pre-repair backup byte for byte.
 - Separate earlier URL bridge test reached the Neople launcher and active game download.
+- GitHub Actions on macOS 15 completed the three suites and universal build successfully for the released source commit.
+- Private repository visibility verified; the uploaded release ZIP's GitHub digest matches the local SHA-256.
 
 Independent static review found three recovery issues: case-sensitive font names, overwriting later font edits on reinstall, and concurrent operations. Each was reproduced with a failing test and fixed; the full suite then passed.
 

@@ -1,0 +1,24 @@
+name: Test and build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test pure launch and registry behavior
+        run: bash scripts/test.sh
+      - name: Build universal installer
+        run: bash scripts/build.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: DNF-Sikarugir-Patch
+          path: dist/DNF-Sikarugir-Patch-v0.1.0.zip
+          if-no-files-found: error
+          retention-days: 7

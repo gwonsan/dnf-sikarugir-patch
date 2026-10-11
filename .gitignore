@@ -1,0 +1,8 @@
+.DS_Store
+build/
+dist/
+.superpowers/
+*.log
+*.reg
+state.plist
+*.app/

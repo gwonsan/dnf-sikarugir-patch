@@ -6,3 +6,5 @@ dist/
 *.reg
 state.plist
 *.app/
+__pycache__/
+*.pyc

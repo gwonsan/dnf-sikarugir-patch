@@ -1,4 +1,19 @@
-# Validation — 0.2.0
+# Validation — 0.3.0
+
+## Prepared app package — 2026-10-13
+
+- Built the prepared app from the SHA-256-pinned official Template 1.0.21, with D3DMetal enabled. Only Source Han Sans and the two verified official Neople starter EXEs were added. No prefix, engine, user registry, game folder or launcher logs are in the distribution. Preserved template license notices and included the complete Source Han Sans SIL OFL notice.
+- Ran production `--prepare-ready` into an independent directory. It installed the pinned engine, initialized a fresh local prefix, copied the three assets and registered fonts without running the Neople installer UI. Wine smoke passed. Korean mappings verified 16/16; both Windows NT and legacy Windows font sections contain the Korean font face.
+- Tested Safari GAME START with this prepared app using a temporary request bridge built around the production Wine launch function. The user confirmed download progress; an independent file sample showed 363 files totaling 1,029,876,351 bytes. No authentication request was read or logged. The bridge restored the original URL handler immediately after forwarding.
+- Stopped only the independent test downloader and moved its game files to Trash after verification, as requested. The earlier Creator test's downloaded game folder was also moved to Trash. The working app was not used as a packaging source.
+- Working Info.plist and patch state hashes stayed unchanged during independent preparation and website testing. The original URL handler remained `io.github.dnf-sikarugir-patch.launcher` after forwarding.
+- Five Swift suites and two Python packaging tests cover clean copying, tampering, symlink assets/destinations, missing or empty starter recovery, both font registration sections, ownership, locking, launch forwarding, font rollback and publication without replacing a newly created destination.
+- Independent review reproduced and fixed missing/empty starter recovery and the already-installed prepared-app bypass. Font registration now matches the two sections used by pinned Winetricks. The packaged README's validation link points to the repository.
+- Both v0.3.0 ZIPs passed archive integrity and packaged README/command/version checks. Extracted helper code signature and arm64/x86_64 architectures passed. The only bundled `.reg` file is the unchanged official Configure default-reset resource, verified byte-for-byte against the pinned template; no user registry is included.
+- `DNF-Sikarugir-Patch-v0.3.0.zip`: 191,164 bytes; SHA-256 `d76a9e5dbcb9c5c4ba2eb3944194b8d5f9a894074f0b49a0fd21c38209e64fa9`.
+- `DNF-Ready-v0.3.0.zip`: 258,193,916 bytes; SHA-256 `27cab7857ddf8edeb660882f651a5181ee964cfa00801bfac74751e3ef9fbfcd`.
+- Rosetta installation is interactive when needed; automatic acceptance is not used. Existing Rosetta was available on the test Mac, so the missing-Rosetta flow has not been executed on a clean Mac.
+- Full download completion and gameplay in this prepared app, an Intel Mac and a second machine remain unverified. Actual gameplay on the user's existing app is confirmed below.
 
 ## User confirmation — 2026-10-13
 

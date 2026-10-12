@@ -16,6 +16,8 @@ On the existing Apple Silicon Mac (macOS 26.6.2, Sikarugir Wine 11), the user co
 - At the user's request, used the already logged-in Safari homepage to test GAME START with the fresh Creator wrapper. A separate temporary bridge used the production Wine launch function and restored the original URL handler after forwarding; the existing patch state was never rewritten. The user confirmed download progress, and actual game files appeared under the fresh prefix's `Program Files (x86)/DNF`. No authentication URL or launcher log was read or published.
 - The first file sample contained 971 files totaling 2,114,073,052 bytes; a later sample confirmed continued growth. Existing-wrapper diagnostics still passed Wine, 16/16 Korean mappings and the original patch handler.
 - Universal v0.2.0 ZIP extracted successfully; strict code signature, arm64/x86_64 architectures, version, all four command permissions and packaged README were verified. SHA-256: `13e9541d565280ff571a017c472757c5db376787c71850be6965149afa93ecc3`.
+- Published v0.2.0 from commit `ae6cdafeb5d2f96cc72a790cb71d5004f79621ff` to the private repository. GitHub's uploaded asset size (157,172 bytes) and SHA-256 digest match the verified local ZIP.
+- [GitHub Actions run 38275664242](https://github.com/gwonsan/dnf-sikarugir-patch/actions/runs/38275664242) passed all four suites and the universal build on macOS 15 for the released source commit.
 - No working game prefix was copied into the new wrappers. Full download completion and gameplay have not yet been verified in the fresh wrappers.
 
 ## Existing patch validation — 0.1.0

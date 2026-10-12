@@ -16,7 +16,7 @@
 - [x] Test a fresh official wrapper and the supplied installer separately from the working DNF app; verify fonts, plugin, registry and Wine smoke without logging authentication URLs.
 - [x] Rewrite README with user-confirmed Korean rendering and actual play on 2026-10-13; distinguish the fresh install test from the working app's gameplay confirmation.
 - [x] Run full tests, universal build, archive signature check and independent review.
-- [ ] Push source and publish the verified ZIP to the authorized private repository.
+- [x] Push source and publish the verified ZIP to the authorized private repository.
 
 **Review focus:** Existing destinations and symlinks must stay untouched; failed downloads must never be executed; cancellation must leave a resumable owned app; vendor binaries stay out of Git; fresh setup must not change the working app's URL handler during validation.
 

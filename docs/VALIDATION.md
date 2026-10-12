@@ -12,6 +12,7 @@
 - Both v0.3.0 ZIPs passed archive integrity and packaged README/command/version checks. Extracted helper code signature and arm64/x86_64 architectures passed. The only bundled `.reg` file is the unchanged official Configure default-reset resource, verified byte-for-byte against the pinned template; no user registry is included.
 - `DNF-Sikarugir-Patch-v0.3.0.zip`: 191,164 bytes; SHA-256 `d76a9e5dbcb9c5c4ba2eb3944194b8d5f9a894074f0b49a0fd21c38209e64fa9`.
 - `DNF-Ready-v0.3.0.zip`: 258,193,916 bytes; SHA-256 `27cab7857ddf8edeb660882f651a5181ee964cfa00801bfac74751e3ef9fbfcd`.
+- Published [v0.3.0](https://github.com/gwonsan/dnf-sikarugir-patch/releases/tag/v0.3.0) from commit `8fd6ed98cf27a1bdd23145ddfbe8a9bc6ec6287c` in the verified private repository. Both GitHub asset sizes and SHA-256 digests match the local records above. [GitHub Actions run 38279096948](https://github.com/gwonsan/dnf-sikarugir-patch/actions/runs/38279096948) passed the five Swift suites, two Python tests and universal build for that commit.
 - Rosetta installation is interactive when needed; automatic acceptance is not used. Existing Rosetta was available on the test Mac, so the missing-Rosetta flow has not been executed on a clean Mac.
 - Full download completion and gameplay in this prepared app, an Intel Mac and a second machine remain unverified. Actual gameplay on the user's existing app is confirmed below.
 

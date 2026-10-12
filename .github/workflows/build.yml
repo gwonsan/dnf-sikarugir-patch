@@ -19,6 +19,6 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: DNF-Sikarugir-Patch
-          path: dist/DNF-Sikarugir-Patch-v0.1.0.zip
+          path: dist/DNF-Sikarugir-Patch-v0.2.0.zip
           if-no-files-found: error
           retention-days: 7

@@ -3,16 +3,21 @@ import Foundation
 func makeLaunchProcess(request: String, wrapper: URL) -> Process? {
     guard request.lowercased().hasPrefix("neople://"),
           !request.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else { return nil }
+    let plugin = wrapper.appendingPathComponent("Contents/SharedSupport/prefix/drive_c/Program Files (x86)/NeoplePlugin/NeopleCustomURLStarter.exe")
+    guard FileManager.default.fileExists(atPath: plugin.path),
+          let process = makeWineProcess(arguments: ["C:\\Program Files (x86)\\NeoplePlugin\\NeopleCustomURLStarter.exe", request], wrapper: wrapper) else { return nil }
+    process.currentDirectoryURL = plugin.deletingLastPathComponent()
+    return process
+}
+
+func makeWineProcess(arguments: [String], wrapper: URL) -> Process? {
     let contents = wrapper.appendingPathComponent("Contents")
     let wine = contents.appendingPathComponent("SharedSupport/wine/bin/wine")
     let prefix = contents.appendingPathComponent("SharedSupport/prefix")
-    let plugin = prefix.appendingPathComponent("drive_c/Program Files (x86)/NeoplePlugin/NeopleCustomURLStarter.exe")
-    guard FileManager.default.isExecutableFile(atPath: wine.path),
-          FileManager.default.fileExists(atPath: plugin.path) else { return nil }
+    guard FileManager.default.isExecutableFile(atPath: wine.path) else { return nil }
     let process = Process()
     process.executableURL = wine
-    process.arguments = ["C:\\Program Files (x86)\\NeoplePlugin\\NeopleCustomURLStarter.exe", request]
-    process.currentDirectoryURL = plugin.deletingLastPathComponent()
+    process.arguments = arguments
     var env = ProcessInfo.processInfo.environment
     env["WINEPREFIX"] = prefix.path
     env["WINESERVER"] = contents.appendingPathComponent("SharedSupport/wine/bin/wineserver").path

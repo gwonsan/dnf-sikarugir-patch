@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euo pipefail
+task_root="$(cd "$(dirname "$0")" && pwd)"
+task_binary="$task_root/DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
+if [[ ! -x "$task_binary" ]]; then
+  /bin/bash "$task_root/scripts/build.sh"
+  task_binary="$task_root/dist/DNF-Sikarugir-Patch/DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
+fi
+if "$task_binary" --setup "$@"; then
+  echo "처음 설치가 끝났습니다. 홈페이지에서 로그인하고 GAME START를 눌러 주세요."
+else
+  echo "설치가 중단됐습니다. 위 오류를 확인하세요. 새 앱과 최초 백업은 보존됩니다."
+  if [[ -t 0 ]]; then read -r -p "Enter를 누르면 종료합니다."; fi
+  exit 1
+fi
+if [[ -t 0 ]]; then read -r -p "Enter를 누르면 종료합니다."; fi

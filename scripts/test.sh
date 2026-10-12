@@ -10,3 +10,9 @@ for task_test in Core Font Lock; do
     "$task_root/Tests/${task_test}Tests.swift" -o "$task_root/build/${task_test}Tests"
   "$task_root/build/${task_test}Tests"
 done
+xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
+  "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
+  "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
+  "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Tests/BootstrapTests.swift" \
+  -framework AppKit -framework CoreServices -o "$task_root/build/BootstrapTests"
+"$task_root/build/BootstrapTests"

@@ -30,6 +30,12 @@ func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
         }
         try fm.removeItem(at: plugin)
         expect(makeLaunchProcess(request: request, wrapper: wrapper) == nil, "missing plugin must fail")
+        let smoke = makeWineProcess(arguments: ["C:\\windows\\system32\\cmd.exe", "/c", "exit 0"], wrapper: wrapper)
+        expect(smoke != nil, "prefix setup must run before the plugin is installed")
+        expect(smoke?.arguments == ["C:\\windows\\system32\\cmd.exe", "/c", "exit 0"], "generic Wine preserves argument boundaries")
+        expect(smoke?.environment?["SikarugirAppWine11"] == "1", "prefix setup uses the working Wine 11 environment")
+        try fm.removeItem(at: wine)
+        expect(makeWineProcess(arguments: ["cmd"], wrapper: wrapper) == nil, "generic Wine rejects a missing engine")
         print("PASS: isolated Wine prefix, intact URL, invalid inputs, Korean locale, missing plugin")
     }
 }

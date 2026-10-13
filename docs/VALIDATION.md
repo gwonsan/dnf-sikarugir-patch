@@ -5,6 +5,7 @@
 - Built the prepared app from the SHA-256-pinned official Template 1.0.21, with D3DMetal enabled. Only Source Han Sans and the two verified official Neople starter EXEs were added. No prefix, engine, user registry, game folder or launcher logs are in the distribution. Preserved template license notices and included the complete Source Han Sans SIL OFL notice.
 - Ran production `--prepare-ready` into an independent directory. It installed the pinned engine, initialized a fresh local prefix, copied the three assets and registered fonts without running the Neople installer UI. Wine smoke passed. Korean mappings verified 16/16; both Windows NT and legacy Windows font sections contain the Korean font face.
 - Tested Safari GAME START with this prepared app using a temporary request bridge built around the production Wine launch function. The user confirmed download progress; an independent file sample showed 363 files totaling 1,029,876,351 bytes. No authentication request was read or logged. The bridge restored the original URL handler immediately after forwarding.
+- After the v0.3.0 release, the user directly confirmed full game download completion and normal gameplay on 2026-10-13. This extends the prepared app's validation beyond the earlier agent-observed partial download; the complete download and gameplay are user-confirmed.
 - Stopped only the independent test downloader and moved its game files to Trash after verification, as requested. The earlier Creator test's downloaded game folder was also moved to Trash. The working app was not used as a packaging source.
 - Working Info.plist and patch state hashes stayed unchanged during independent preparation and website testing. The original URL handler remained `io.github.dnf-sikarugir-patch.launcher` after forwarding.
 - Five Swift suites and two Python packaging tests cover clean copying, tampering, symlink assets/destinations, missing or empty starter recovery, both font registration sections, ownership, locking, launch forwarding, font rollback and publication without replacing a newly created destination.
@@ -14,13 +15,13 @@
 - `DNF-Ready-v0.3.0.zip`: 258,193,916 bytes; SHA-256 `27cab7857ddf8edeb660882f651a5181ee964cfa00801bfac74751e3ef9fbfcd`.
 - Published [v0.3.0](https://github.com/gwonsan/dnf-sikarugir-patch/releases/tag/v0.3.0) from commit `8fd6ed98cf27a1bdd23145ddfbe8a9bc6ec6287c` in the verified private repository. Both GitHub asset sizes and SHA-256 digests match the local records above. [GitHub Actions run 38279096948](https://github.com/gwonsan/dnf-sikarugir-patch/actions/runs/38279096948) passed the five Swift suites, two Python tests and universal build for that commit.
 - Rosetta installation is interactive when needed; automatic acceptance is not used. Existing Rosetta was available on the test Mac, so the missing-Rosetta flow has not been executed on a clean Mac.
-- Full download completion and gameplay in this prepared app, an Intel Mac and a second machine remain unverified. Actual gameplay on the user's existing app is confirmed below.
+- An Intel Mac and a second machine remain unverified. Full download completion and normal gameplay in the prepared app are user-confirmed on the tested Apple Silicon Mac.
 
 ## User confirmation — 2026-10-13
 
-On the existing Apple Silicon Mac (macOS 26.6.2, Sikarugir Wine 11), the user confirmed that website launch, downloading, Korean text and actual gameplay all work normally. This is user confirmation on this environment, not a guarantee for every Mac or future game update.
+On the existing Apple Silicon Mac (macOS 26.6.2, Sikarugir Wine 11), the user initially confirmed that website launch, downloading, Korean text and actual gameplay all work normally. After the v0.3.0 release, the user also confirmed the prepared app's full download completion and normal gameplay. These are user confirmations on this environment, not a guarantee for every Mac or future game update.
 
-## Fresh setup — 2026-10-13
+## Fresh setup — 0.2.0 (2026-10-13)
 
 - Created an independent empty `DNF.app` through the installed official Sikarugir Creator, using Template 1.0.21 and WS12WineSikarugir11.0_1. Enabled D3DMetal in its Configure UI and completed `fakejapanese` font installation.
 - The supplied `NeopleCustomURLBuilder.exe` matched the file downloaded from the official DNF page (SHA-256 `d97c313e5e284b0665dd267828d5571551c706c2be2d712e461cc68ccfa7c109`).
@@ -34,7 +35,7 @@ On the existing Apple Silicon Mac (macOS 26.6.2, Sikarugir Wine 11), the user co
 - Universal v0.2.0 ZIP extracted successfully; strict code signature, arm64/x86_64 architectures, version, all four command permissions and packaged README were verified. SHA-256: `13e9541d565280ff571a017c472757c5db376787c71850be6965149afa93ecc3`.
 - Published v0.2.0 from commit `ae6cdafeb5d2f96cc72a790cb71d5004f79621ff` to the private repository. GitHub's uploaded asset size (157,172 bytes) and SHA-256 digest match the verified local ZIP.
 - [GitHub Actions run 38275664242](https://github.com/gwonsan/dnf-sikarugir-patch/actions/runs/38275664242) passed all four suites and the universal build on macOS 15 for the released source commit.
-- No working game prefix was copied into the new wrappers. Full download completion and gameplay have not yet been verified in the fresh wrappers.
+- No working game prefix was copied into the new wrappers. At the end of v0.2.0 validation, full download completion and gameplay in the fresh wrappers had not been verified; the later prepared-app confirmation is recorded above.
 
 ## Existing patch validation — 0.1.0
 
@@ -53,4 +54,4 @@ Local checks on Apple Silicon macOS with an existing Sikarugir Wine 11 prefix:
 
 Independent static review found three recovery issues: case-sensitive font names, overwriting later font edits on reinstall, and concurrent operations. Each was reproduced with a failing test and fixed; the full suite then passed.
 
-Not yet verified: an Intel Mac, the complete first-install flow on a second machine, or full game download completion and gameplay in the fresh wrappers. Korean rendering and gameplay on the existing wrapper are user-confirmed as stated above. No game download was stopped during validation.
+At the end of v0.1.0 validation, an Intel Mac, first installation on a second machine, and full download completion and gameplay in fresh wrappers were unverified. Later prepared-app confirmation is recorded above. No game download was stopped during the v0.1.0 validation.

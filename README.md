@@ -2,7 +2,7 @@
 
 맥에서 Sikarugir로 한국 던전앤파이터를 설치하고 홈페이지의 **GAME START**로 실행하기 위한 도구입니다. **D3DMetal, 한글 폰트, 네오플 실행 파일과 홈페이지 연결**을 함께 준비합니다.
 
-Apple Silicon Mac · macOS 26.6.2 · Sikarugir Wine 11 환경에서 기존 앱의 홈페이지 실행, 게임 다운로드, 한글 표시와 실제 플레이가 정상 작동한다고 사용자가 확인했습니다. 별도로 만든 앱에서도 GAME START로 실제 다운로드가 진행됐습니다. 검증 범위는 [VALIDATION.md](https://github.com/gwonsan/dnf-sikarugir-patch/blob/main/docs/VALIDATION.md)에 기록합니다.
+2026-10-13 기준 Apple Silicon Mac · macOS 26.6.2 · Sikarugir Wine 11 환경에서 홈페이지 실행과 한글 표시가 정상 작동하며, **준비된 DNF.app에서도 게임 전체 다운로드 완료와 정상 플레이를 사용자가 직접 확인했습니다.** 검증 범위는 [VALIDATION.md](https://github.com/gwonsan/dnf-sikarugir-patch/blob/main/docs/VALIDATION.md)에 기록합니다.
 
 ## 가장 간단한 설치
 
@@ -70,7 +70,7 @@ Sikarugir Creator에서 직접 작업할 때의 순서는 다음과 같습니다
 
 최초 백업은 `~/Library/Application Support/DNF Sikarugir Patch/state.plist`에 저장하며 재설치 때 덮어쓰지 않습니다. 설치·복원은 동시에 겹치지 않도록 잠금을 사용합니다. 복원은 만들어진 DNF.app, 게임, 플러그인·폰트나 설치 자료를 삭제하지 않습니다.
 
-Intel용 패치 실행 파일도 포함하지만 Intel Mac 실기기 검증은 하지 않았습니다. 두 번째 Mac에서의 전체 설치와 새 앱에서의 다운로드 완료·플레이는 아직 검증하지 않았습니다. 기존 앱의 정상 플레이 확인은 위 환경 기준입니다.
+Intel용 패치 실행 파일도 포함하지만 Intel Mac 실기기와 두 번째 Mac에서의 전체 설치는 아직 검증하지 않았습니다. 다운로드 완료와 정상 플레이 확인은 위 환경 기준입니다.
 
 ## 소스에서 빌드
 

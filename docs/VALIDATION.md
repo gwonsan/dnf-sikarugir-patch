@@ -1,6 +1,15 @@
-# Validation — 0.3.0
+# Validation
 
-## Prepared app package — 2026-10-13
+## Quiet web launch bridge — 0.3.1 (2026-10-13)
+
+- Reproduced the original instruction window through the real AppKit delegate: the new no-window regression test failed before the fix.
+- Removed the startup window and foreground activation. The helper uses accessory activation and `LSUIElement`; it creates a window only for a launch failure or nonzero Wine exit.
+- Native AppKit regression checks passed for silent startup, actionable launch errors and reusing one error window. All five existing Swift suites and both Python packaging tests also passed. Existing request forwarding and Wine arguments are unchanged.
+- Built arm64/x86_64 helpers in both ZIPs. Archive integrity, extracted strict code signatures, version 0.3.1, accessory metadata and the redacted gameplay image passed. The prepared app retains the pinned assets and contains no initialized prefix, engine or launcher logs.
+- Updated only the local DNF Web Launcher, with a recoverable backup. The game app's Info.plist and patch state hashes stayed unchanged. The installed helper executable matches both verified distribution ZIPs; launching the updated helper starts its process without the original instruction window.
+- This update does not repeat full game download or gameplay testing. The user's earlier gameplay confirmation applies to v0.3.0 on the tested Mac.
+
+## Prepared app package — 0.3.0 (2026-10-13)
 
 - Built the prepared app from the SHA-256-pinned official Template 1.0.21, with D3DMetal enabled. Only Source Han Sans and the two verified official Neople starter EXEs were added. No prefix, engine, user registry, game folder or launcher logs are in the distribution. Preserved template license notices and included the complete Source Han Sans SIL OFL notice.
 - Ran production `--prepare-ready` into an independent directory. It installed the pinned engine, initialized a fresh local prefix, copied the three assets and registered fonts without running the Neople installer UI. Wine smoke passed. Korean mappings verified 16/16; both Windows NT and legacy Windows font sections contain the Korean font face.

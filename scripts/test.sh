@@ -22,4 +22,10 @@ xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
   "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Sources/Prepared.swift" "$task_root/Tests/PreparedTests.swift" \
   -framework AppKit -framework CoreServices -o "$task_root/build/PreparedTests"
 "$task_root/build/PreparedTests"
+xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
+  "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
+  "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
+  "$task_root/Sources/Bridge.swift" "$task_root/Tests/BridgeTests.swift" \
+  -framework AppKit -framework CoreServices -o "$task_root/build/BridgeTests"
+"$task_root/build/BridgeTests"
 python3 -m unittest discover -s "$task_root/Tests" -p test_package_ready.py

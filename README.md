@@ -10,9 +10,11 @@
 
 ## 가장 간단한 설치
 
-1. [Releases](https://github.com/gwonsan/dnf-sikarugir-patch/releases)에서 `DNF-Ready-v0.3.0.zip`을 받아 압축을 풉니다.
+1. [Releases](https://github.com/gwonsan/dnf-sikarugir-patch/releases)에서 `DNF-Ready-v0.3.1.zip`을 받아 압축을 풉니다.
 2. 폴더 안의 `시작.command`를 더블클릭합니다. Rosetta가 없으면 Apple 설치 창의 약관을 확인하고 동의합니다. 이후 Wine 설치와 패치 적용은 자동으로 진행됩니다.
 3. 열린 던파 홈페이지에서 **Safari로 로그인하고 GAME START**를 누릅니다. 브라우저의 외부 앱 실행 확인을 허용하고 게임을 내려받습니다.
+
+정상 실행 시 패치 도우미는 안내 창이나 Dock 아이콘 없이 실행 요청을 전달합니다. 실행 요청 전달에 실패하면 오류 창이 표시됩니다.
 
 **60초 설치 안내 영상**
 
@@ -20,16 +22,16 @@ https://github.com/user-attachments/assets/e18cd303-6cdd-4ce7-a436-aa5dc20c9b9b
 
 [영상 다운로드 · MP4](https://github.com/gwonsan/dnf-sikarugir-patch/releases/download/v0.3.0/DNF-Install-Guide-v0.3.0.mp4)
 
-실제 화면 캡처와 단계별 자막으로 만든 요약 영상입니다. 파일 다운로드·자동 설치·게임 다운로드에는 별도의 시간이 필요합니다.
+실제 화면 캡처와 단계별 자막으로 만든 요약 영상입니다. 영상과 아래 화면은 v0.3.0 기준이며, v0.3.1도 설치 순서는 같습니다. 파일 다운로드·자동 설치·게임 다운로드에는 별도의 시간이 필요합니다.
 
 <details>
 <summary><strong>설치 화면 4장으로 따라하기</strong></summary>
 
 ### 1. 준비된 ZIP 다운로드
 
-[v0.3.0 배포 페이지](https://github.com/gwonsan/dnf-sikarugir-patch/releases/tag/v0.3.0)의 **Assets → DNF-Ready-v0.3.0.zip**을 선택합니다. 처음 설치할 때는 준비된 DNF.app이 포함된 큰 ZIP을 받으세요.
+[v0.3.1 배포 페이지](https://github.com/gwonsan/dnf-sikarugir-patch/releases/tag/v0.3.1)의 **Assets → DNF-Ready-v0.3.1.zip**을 선택합니다. 처음 설치할 때는 준비된 DNF.app이 포함된 큰 ZIP을 받으세요.
 
-![GitHub 배포 페이지의 DNF-Ready-v0.3.0.zip 다운로드 위치](docs/images/install-01-release.jpg)
+![GitHub 배포 페이지의 준비된 DNF-Ready ZIP 다운로드 위치](docs/images/install-01-release.jpg)
 
 ### 2. 압축을 풀고 시작.command 실행
 
@@ -85,7 +87,7 @@ bash 시작.command "$HOME/Applications/Sikarugir/DNF.app"
 
 ## 이미 정상 작동하는 앱에 패치만 적용
 
-작은 `DNF-Sikarugir-Patch-v0.3.0.zip`에는 준비된 DNF.app이 없습니다. 이 ZIP은 기존 앱 패치나 아래의 수동 설치 경로에 사용합니다.
+작은 `DNF-Sikarugir-Patch-v0.3.1.zip`에는 준비된 DNF.app이 없습니다. 이 ZIP은 기존 앱 패치나 아래의 수동 설치 경로에 사용합니다.
 
 1. `설치.command`를 더블클릭합니다. 기본 경로의 `DNF.app`을 찾고, 없으면 앱 선택 창이 뜹니다.
 2. 설치 완료 후 홈페이지에서 로그인하고 **GAME START**를 누릅니다.
@@ -128,7 +130,7 @@ bash scripts/test.sh
 bash scripts/build.sh
 ```
 
-결과는 arm64와 x86_64를 포함하는 `dist/DNF-Sikarugir-Patch-v0.3.0.zip`입니다. 준비된 앱 패키지는 검증된 공식 템플릿과 폰트, 설치된 공식 플러그인 파일 두 개를 지정해 별도로 만듭니다.
+결과는 arm64와 x86_64를 포함하는 `dist/DNF-Sikarugir-Patch-v0.3.1.zip`입니다. 준비된 앱 패키지는 검증된 공식 템플릿과 폰트, 설치된 공식 플러그인 파일 두 개를 지정해 별도로 만듭니다.
 
 ```sh
 python3 scripts/package-ready.py \
@@ -136,8 +138,8 @@ python3 scripts/package-ready.py \
   --font /path/to/sourcehansans.ttc \
   --plugin-directory /path/to/NeoplePlugin \
   --font-license /path/to/SourceHanSans-OFL.txt \
-  --destination dist/DNF-Ready-v0.3.0/DNF.app
+  --destination dist/DNF-Ready-v0.3.1/DNF.app
 bash scripts/build-ready.sh
 ```
 
-입력 파일의 고정된 SHA-256을 확인하고, 사용한 앱의 Wine 환경을 복사하지 않습니다. 결과는 `dist/DNF-Ready-v0.3.0.zip`입니다. 소스 저장소에는 게임·Wine 바이너리, 사용자 레지스트리·백업과 인증 로그를 넣지 않습니다. 패치 자체 코드는 MIT이며 동봉한 구성 요소에는 각 배포처의 라이선스가 적용됩니다.
+입력 파일의 고정된 SHA-256을 확인하고, 사용한 앱의 Wine 환경을 복사하지 않습니다. 결과는 `dist/DNF-Ready-v0.3.1.zip`입니다. 소스 저장소에는 게임·Wine 바이너리, 사용자 레지스트리·백업과 인증 로그를 넣지 않습니다. 패치 자체 코드는 MIT이며 동봉한 구성 요소에는 각 배포처의 라이선스가 적용됩니다.

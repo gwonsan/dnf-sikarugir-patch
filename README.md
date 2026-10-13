@@ -14,7 +14,11 @@
 2. 폴더 안의 `시작.command`를 더블클릭합니다. Rosetta가 없으면 Apple 설치 창의 약관을 확인하고 동의합니다. 이후 Wine 설치와 패치 적용은 자동으로 진행됩니다.
 3. 열린 던파 홈페이지에서 **Safari로 로그인하고 GAME START**를 누릅니다. 브라우저의 외부 앱 실행 확인을 허용하고 게임을 내려받습니다.
 
-**[60초 설치 안내 영상 다운로드 · MP4](https://github.com/gwonsan/dnf-sikarugir-patch/releases/download/v0.3.0/DNF-Install-Guide-v0.3.0.mp4)**
+**60초 설치 안내 영상**
+
+https://github.com/user-attachments/assets/e18cd303-6cdd-4ce7-a436-aa5dc20c9b9b
+
+[영상 다운로드 · MP4](https://github.com/gwonsan/dnf-sikarugir-patch/releases/download/v0.3.0/DNF-Install-Guide-v0.3.0.mp4)
 
 실제 화면 캡처와 단계별 자막으로 만든 요약 영상입니다. 파일 다운로드·자동 설치·게임 다운로드에는 별도의 시간이 필요합니다.
 

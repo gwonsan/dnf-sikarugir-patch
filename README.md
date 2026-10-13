@@ -14,6 +14,43 @@
 2. 폴더 안의 **`시작.command`**를 더블클릭합니다. Rosetta가 없으면 Apple 설치 창의 약관을 확인하고 동의합니다. 이후 Wine 설치와 패치 적용은 자동으로 진행됩니다.
 3. 열린 던파 홈페이지에서 **Safari로 로그인하고 GAME START**를 누릅니다. 브라우저의 외부 앱 실행 확인을 허용하고 게임을 내려받습니다.
 
+**[60초 설치 안내 영상 다운로드 · MP4](https://github.com/gwonsan/dnf-sikarugir-patch/releases/download/v0.3.0/DNF-Install-Guide-v0.3.0.mp4)**
+
+실제 화면 캡처와 단계별 자막으로 만든 요약 영상입니다. 파일 다운로드·자동 설치·게임 다운로드에는 별도의 시간이 필요합니다.
+
+<details>
+<summary><strong>설치 화면 4장으로 따라하기</strong></summary>
+
+### 1. 준비된 ZIP 다운로드
+
+[v0.3.0 배포 페이지](https://github.com/gwonsan/dnf-sikarugir-patch/releases/tag/v0.3.0)의 **Assets → DNF-Ready-v0.3.0.zip**을 선택합니다. 처음 설치할 때는 준비된 DNF.app이 포함된 큰 ZIP을 받으세요.
+
+![GitHub 배포 페이지의 DNF-Ready-v0.3.0.zip 다운로드 위치](docs/images/install-01-release.jpg)
+
+### 2. 압축을 풀고 시작.command 실행
+
+받은 ZIP을 더블클릭해 압축을 푼 뒤, 폴더 안의 **시작.command**를 더블클릭합니다. 필요한 파일을 폴더 안에 함께 둔 상태로 실행하세요.
+
+![압축을 푼 폴더에서 선택한 시작.command](docs/images/install-02-start.jpg)
+
+### 3. 자동 설정 완료 기다리기
+
+Rosetta가 없으면 Apple 약관을 확인하고 직접 동의합니다. Wine 설치, 새 Wine 환경 생성, 폰트·네오플 실행 파일·홈페이지 연결은 자동으로 진행됩니다. 터미널에 **“설정 완료. 열린 던파 홈페이지에서 로그인하고 GAME START를 눌러 주세요.”**가 나오면 다음 단계로 넘어갑니다.
+
+기본 설치 위치는 **사용자 홈 → Applications → Sikarugir → DNF.app**입니다. 아래는 정상 설치된 앱의 위치 예시입니다. 촬영한 앱에는 이미 게임 파일이 내려받아져 있어 설치 직후보다 크기가 큽니다.
+
+![사용자 Applications의 Sikarugir 폴더에 설치된 DNF.app](docs/images/install-03-app.jpg)
+
+### 4. Safari 로그인 후 홈페이지에서 실행
+
+[던파 홈페이지](https://df.nexon.com)를 Safari로 열고 로그인합니다. 오른쪽 위의 **모험시작(GAME START)**을 누르고 외부 앱 열기를 허용하세요. 네오플 창에서 설치 경로를 확인한 뒤 게임 다운로드를 진행합니다. 다운로드가 끝나면 게임에 접속할 수 있습니다.
+
+![던파 홈페이지 오른쪽 위의 모험시작과 로그인 버튼](docs/images/install-04-homepage.jpg)
+
+로그인 입력과 OTP 인증은 직접 진행하세요. 안내 화면에는 로그인 정보와 인증번호를 담지 않았습니다.
+
+</details>
+
 Sikarugir Creator에서 빈 앱을 만들거나 Configure를 열고 플러그인 설치 버튼을 누르는 절차를 미리 준비한 패키지입니다. 기본 설치 위치는 `~/Applications/Sikarugir/DNF.app`입니다. Xcode나 별도 Wine 설치 명령은 필요하지 않습니다.
 
 필요한 환경은 macOS 14.6 이상과 인터넷 연결입니다. Apple Silicon에서는 Rosetta를 사용합니다. 게임용 저장공간은 [공식 다운로드 안내](https://df.nexon.com/data/client)를 확인하세요. 패치 도우미는 임시 서명을 사용하며 Apple 공증은 되어 있지 않습니다. macOS가 명령 파일을 차단하면 **시스템 설정 → 개인정보 보호 및 보안 → 확인 없이 열기**에서 해당 파일을 허용하세요.

@@ -42,6 +42,7 @@ fi
 bash "$task_root/scripts/build.sh"
 ditto "$task_root/dist/DNF-Sikarugir-Patch/DNF Web Launcher.app" "$task_dist/DNF Web Launcher.app"
 cp "$task_root/시작.command" "$task_root/설치.command" "$task_root/복원.command" "$task_root/진단.command" "$task_root/README.md" "$task_root/LICENSE" "$task_root/THIRD_PARTY.md" "$task_dist/"
+ditto "$task_root/docs/images" "$task_dist/docs/images"
 chmod +x "$task_dist/"*.command
 ditto -c -k --keepParent --norsrc --noextattr "$task_dist" "$task_root/dist/DNF-Ready-v0.3.0.zip"
 echo "준비된 앱 패키지 완료: dist/DNF-Ready-v0.3.0.zip"

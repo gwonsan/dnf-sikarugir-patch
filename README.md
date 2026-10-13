@@ -10,8 +10,8 @@
 
 ## 가장 간단한 설치
 
-1. [Releases](https://github.com/gwonsan/dnf-sikarugir-patch/releases)에서 **`DNF-Ready-v0.3.0.zip`**을 받아 압축을 풉니다.
-2. 폴더 안의 **`시작.command`**를 더블클릭합니다. Rosetta가 없으면 Apple 설치 창의 약관을 확인하고 동의합니다. 이후 Wine 설치와 패치 적용은 자동으로 진행됩니다.
+1. [Releases](https://github.com/gwonsan/dnf-sikarugir-patch/releases)에서 `DNF-Ready-v0.3.0.zip`을 받아 압축을 풉니다.
+2. 폴더 안의 `시작.command`를 더블클릭합니다. Rosetta가 없으면 Apple 설치 창의 약관을 확인하고 동의합니다. 이후 Wine 설치와 패치 적용은 자동으로 진행됩니다.
 3. 열린 던파 홈페이지에서 **Safari로 로그인하고 GAME START**를 누릅니다. 브라우저의 외부 앱 실행 확인을 허용하고 게임을 내려받습니다.
 
 **[60초 설치 안내 영상 다운로드 · MP4](https://github.com/gwonsan/dnf-sikarugir-patch/releases/download/v0.3.0/DNF-Install-Guide-v0.3.0.mp4)**
@@ -35,7 +35,9 @@
 
 ### 3. 자동 설정 완료 기다리기
 
-Rosetta가 없으면 Apple 약관을 확인하고 직접 동의합니다. Wine 설치, 새 Wine 환경 생성, 폰트·네오플 실행 파일·홈페이지 연결은 자동으로 진행됩니다. 터미널에 **“설정 완료. 열린 던파 홈페이지에서 로그인하고 GAME START를 눌러 주세요.”**가 나오면 다음 단계로 넘어갑니다.
+Rosetta가 없으면 Apple 약관을 확인하고 직접 동의합니다. Wine 설치, 새 Wine 환경 생성, 폰트·네오플 실행 파일·홈페이지 연결은 자동으로 진행됩니다. 터미널에 다음 메시지가 나오면 다음 단계로 넘어갑니다.
+
+> 설정 완료. 열린 던파 홈페이지에서 로그인하고 GAME START를 눌러 주세요.
 
 기본 설치 위치는 **사용자 홈 → Applications → Sikarugir → DNF.app**입니다. 아래는 정상 설치된 앱의 위치 예시입니다. 촬영한 앱에는 이미 게임 파일이 내려받아져 있어 설치 직후보다 크기가 큽니다.
 
@@ -43,7 +45,7 @@ Rosetta가 없으면 Apple 약관을 확인하고 직접 동의합니다. Wine �
 
 ### 4. Safari 로그인 후 홈페이지에서 실행
 
-[던파 홈페이지](https://df.nexon.com)를 Safari로 열고 로그인합니다. 오른쪽 위의 **모험시작(GAME START)**을 누르고 외부 앱 열기를 허용하세요. 네오플 창에서 설치 경로를 확인한 뒤 게임 다운로드를 진행합니다. 다운로드가 끝나면 게임에 접속할 수 있습니다.
+[던파 홈페이지](https://df.nexon.com)를 Safari로 열고 로그인합니다. 오른쪽 위의 **모험시작** 버튼(GAME START)을 누르고 외부 앱 열기를 허용하세요. 네오플 창에서 설치 경로를 확인한 뒤 게임 다운로드를 진행합니다. 다운로드가 끝나면 게임에 접속할 수 있습니다.
 
 ![던파 홈페이지 오른쪽 위의 모험시작과 로그인 버튼](docs/images/install-04-homepage.jpg)
 
@@ -79,7 +81,7 @@ bash 시작.command "$HOME/Applications/Sikarugir/DNF.app"
 
 ## 이미 정상 작동하는 앱에 패치만 적용
 
-작은 **`DNF-Sikarugir-Patch-v0.3.0.zip`**에는 준비된 DNF.app이 없습니다. 이 ZIP은 기존 앱 패치나 아래의 수동 설치 경로에 사용합니다.
+작은 `DNF-Sikarugir-Patch-v0.3.0.zip`에는 준비된 DNF.app이 없습니다. 이 ZIP은 기존 앱 패치나 아래의 수동 설치 경로에 사용합니다.
 
 1. `설치.command`를 더블클릭합니다. 기본 경로의 `DNF.app`을 찾고, 없으면 앱 선택 창이 뜹니다.
 2. 설치 완료 후 홈페이지에서 로그인하고 **GAME START**를 누릅니다.
@@ -98,7 +100,7 @@ bash 설치.command "/path/to/DNF.app"
 Sikarugir Creator에서 직접 작업할 때의 순서는 다음과 같습니다.
 
 1. [공식 Sikarugir Creator](https://github.com/Sikarugir-App/Sikarugir)에서 `WS12WineSikarugir11.0_1`을 선택하고 빈 `DNF.app`을 만듭니다.
-2. 만든 앱의 Configure → Configuration에서 **Direct3D to Metal translation layer (D3DMetal)**을 체크합니다.
+2. 만든 앱의 Configure → Configuration에서 **Direct3D to Metal translation layer** 옵션(D3DMetal)을 체크합니다.
 3. Winetricks → fonts → **fakejapanese → Run**을 실행합니다.
 4. Install Software → Choose Setup Executable에서 공식 `NeopleCustomURLBuilder.exe`를 선택합니다.
 5. Wine 설치 창의 **‘설치’**를 눌러 완료합니다.

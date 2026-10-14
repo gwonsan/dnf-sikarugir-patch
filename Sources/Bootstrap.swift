@@ -57,13 +57,7 @@ enum Bootstrap {
             print("빈 DNF.app 생성 중… D3DMetal을 활성화합니다.")
             try WrapperFactory.assemble(templateArchive: templateFile, engineArchive: engineFile, destination: wrapper)
         }
-        let launcher = wrapper.appendingPathComponent("Contents/MacOS/Sikarugir")
-        if !Installer.fm.fileExists(atPath: wrapper.appendingPathComponent("Contents/SharedSupport/prefix/system.reg").path) {
-            print("새 Wine prefix 초기화 중…")
-            guard try Installer.run(launcher, ["WSS-wineprefixcreate"], timeout: 300) == 0 else {
-                throw PatchError(message: "새 Wine prefix 초기화에 실패했습니다. 처음설치.command를 다시 실행하면 이어서 진행합니다.")
-            }
-        }
+        try WrapperFactory.initializePrefix(wrapper)
         guard let smoke = makeWineProcess(arguments: ["C:\\windows\\system32\\cmd.exe", "/c", "exit 0"], wrapper: wrapper),
               try Installer.run(smoke.executableURL!, smoke.arguments!, environment: smoke.environment) == 0 else {
             throw PatchError(message: "새 앱의 Wine 실행 진단에 실패했습니다.")

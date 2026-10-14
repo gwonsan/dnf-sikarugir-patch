@@ -24,6 +24,37 @@ enum WrapperFactory {
         guard actual == sha256 else { throw PatchError(message: "다운로드 파일의 SHA-256이 다릅니다. 해당 파일을 실행하지 않습니다: \(url.lastPathComponent)") }
     }
 
+    static func prefixReady(_ wrapper: URL) -> Bool {
+        let prefix = wrapper.appendingPathComponent("Contents/SharedSupport/prefix")
+        return ["system.reg", "user.reg", "drive_c/windows/system32/cmd.exe"].allSatisfy { name in
+            let values = try? prefix.appendingPathComponent(name).resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            return values?.isRegularFile == true && (values?.fileSize ?? 0) > 0
+        } && ["drive_c/Program Files", "drive_c/Program Files (x86)"].allSatisfy { name in
+            (try? prefix.appendingPathComponent(name).resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        }
+    }
+
+    static func initializePrefix(_ wrapper: URL, timeout: TimeInterval = 300) throws {
+        if prefixReady(wrapper) { return }
+        let support = wrapper.appendingPathComponent("Contents/SharedSupport")
+        guard (try? FileManager.default.destinationOfSymbolicLink(atPath: support.appendingPathComponent("prefix").path)) == nil else {
+            throw PatchError(message: "Wine 환경 경로가 다른 폴더로 연결되어 있습니다. 새 앱 경로를 지정하세요.")
+        }
+        let log = support.appendingPathComponent("Logs/DNF-prefix-init.log")
+        print("이 Mac에 맞는 Windows 폴더와 레지스트리 생성 중… 최대 5분 정도 걸릴 수 있습니다.")
+        print("초기화 로그: \(log.path)")
+        fflush(stdout)
+        do {
+            let code = try Installer.run(wrapper.appendingPathComponent("Contents/MacOS/Sikarugir"), ["WSS-wineprefixcreate"], timeout: timeout, log: log)
+            guard code == 0, prefixReady(wrapper) else {
+                throw PatchError(message: "초기화 종료 코드 \(code). 필수 Windows 파일 생성 여부를 확인하지 못했습니다.")
+            }
+        } catch {
+            throw PatchError(message: "Wine 환경 생성에 실패했습니다: \(error.localizedDescription)\n앱 손상 경고가 떴다면 해당 내용도 함께 확인해 주세요.\n초기화 로그: \(log.path)")
+        }
+        print("Windows 환경 생성 확인 완료: drive_c, 레지스트리, cmd.exe")
+    }
+
     static func assemble(templateArchive: URL, engineArchive: URL, destination: URL) throws {
         let fm = FileManager.default
         guard destination.pathExtension.lowercased() == "app", !exists(destination) else {

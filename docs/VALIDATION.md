@@ -1,5 +1,16 @@
 # Validation
 
+## Fresh local assembly — 0.3.2 (2026-10-15)
+
+- Confirmed the official Template archive contains only a relative `Contents/drive_c` link; Wine creates its target and the Windows files during initialization. A separate no-prefix baseline completed this operation. Missing `drive_c` alone is not proof of an incorrect link.
+- Confirmed v0.3.1 DNF.app fails strict bundle signature validation. The v0.3.1 signature claim below applies to the **DNF Web Launcher helper only**, not the Sikarugir wrapper.
+- Ready installation now assembles native code from the pinned official template and engine locally, then copies only the ready data/licensing. It does not execute the downloaded ready app or remove quarantine attributes. This is not Developer ID signing or Apple notarization.
+- Regression test failed against the old bundle-copy implementation, then passed after local assembly. Tests cover partial prefixes, a zero launcher exit without Windows files, diagnostic output, nonzero exit, timeout, complete-prefix preservation, and backing up an incomplete old app.
+- Real integration check started with no destination app/prefix and a quarantined input ready app. Production preparation assembled a fresh wrapper, created both Program Files directories, system.reg/user.reg and cmd.exe, installed both Neople starter EXEs, and imported/exported all 16 Korean font replacements. cmd.exe exited successfully. Only isolated test apps were changed; the installed game, state and URL handler were not changed.
+- Reproduction command: `bash scripts/test-fresh-install.sh /path/to/prepared/DNF.app`. This opt-in test runs real Wine in a newly created temporary directory and preserves logs. It does not install the URL handler or launch a game download.
+- Six Swift suites and two Python tests passed locally. Sandboxed AppKit tests emitted an OS notification registration warning but their startup/error-window assertions passed.
+- This was an isolated new prefix on the existing Mac, **not a separate macOS account or second physical Mac**. Existing Rosetta and verified download caches were available. New-account Gatekeeper prompts, absent-Rosetta setup, full game download and gameplay with v0.3.2 remain unverified.
+
 ## Quiet web launch bridge — 0.3.1 (2026-10-13)
 
 - Reproduced the original instruction window through the real AppKit delegate: the new no-window regression test failed before the fix.

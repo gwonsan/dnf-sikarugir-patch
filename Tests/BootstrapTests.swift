@@ -54,6 +54,39 @@ func tar(_ source: URL, _ name: String, _ archive: URL) throws {
         check(settings["CustomTemplateSetting"] as? String == "keep", "preserve unrelated template settings")
         check(fm.isExecutableFile(atPath: app.appendingPathComponent("Contents/SharedSupport/wine/bin/wine").path), "engine is inside the new app")
         check(WrapperFactory.isOwned(app), "new wrapper can resume")
+        // A zero exit or an early system.reg must not count as a usable Windows environment.
+        let prefix = app.appendingPathComponent("Contents/SharedSupport/prefix")
+        try fm.createDirectory(at: prefix, withIntermediateDirectories: true)
+        try Data("partial registry".utf8).write(to: prefix.appendingPathComponent("system.reg"))
+        check(!WrapperFactory.prefixReady(app), "partial Windows environment is not complete")
+        rejects({ try WrapperFactory.initializePrefix(app) }, "zero launcher exit without Windows files is rejected")
+        let installedLauncher = app.appendingPathComponent("Contents/MacOS/Sikarugir")
+        let script = """
+        #!/bin/sh
+        set -eu
+        [ "$1" = WSS-wineprefixcreate ]
+        base="$(dirname "$0")/../SharedSupport/prefix"
+        mkdir -p "$base/drive_c/windows/system32" "$base/drive_c/Program Files" "$base/drive_c/Program Files (x86)"
+        for f in system.reg user.reg drive_c/windows/system32/cmd.exe; do
+          echo initialized > "$base/$f"
+        done
+        echo 'initialization diagnostic'
+        """
+        try Data(script.utf8).write(to: installedLauncher)
+        try WrapperFactory.initializePrefix(app)
+        check(WrapperFactory.prefixReady(app), "fresh initialization creates complete Windows files")
+        let log = app.appendingPathComponent("Contents/SharedSupport/Logs/DNF-prefix-init.log")
+        let diagnostic = try String(contentsOf: log, encoding: .utf8)
+        check(diagnostic.contains("initialization diagnostic"), "initialization output is available for troubleshooting")
+        try Data("#!/bin/sh\nexit 42\n".utf8).write(to: installedLauncher)
+        try WrapperFactory.initializePrefix(app)
+        check(WrapperFactory.prefixReady(app), "complete prefix is preserved without rerunning launcher")
+        try fm.removeItem(at: prefix.appendingPathComponent("user.reg"))
+        rejects({ try WrapperFactory.initializePrefix(app) }, "nonzero initialization does not proceed to plugin setup")
+        try Data("#!/bin/sh\nexec /bin/sleep 10\n".utf8).write(to: installedLauncher)
+        let started = Date()
+        rejects({ try WrapperFactory.initializePrefix(app, timeout: 0.2) }, "hung initialization terminates with diagnostic")
+        check(Date().timeIntervalSince(started) < 3, "initialization timeout is bounded")
         let font = app.appendingPathComponent("Contents/SharedSupport/prefix/drive_c/windows/Fonts/sourcehansans.ttc")
         let ready = app.appendingPathComponent("Contents/SharedSupport/dnf-fonts-ready")
         try fm.createDirectory(at: font.deletingLastPathComponent(), withIntermediateDirectories: true)

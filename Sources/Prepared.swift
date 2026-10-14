@@ -32,7 +32,7 @@ enum Prepared {
         }
     }
 
-    static func copyBundle(_ source: URL, to destination: URL) throws {
+    static func copyBundle(_ source: URL, to destination: URL, templateArchive: URL? = nil, engineArchive: URL? = nil) throws {
         try validate(source)
         guard destination.pathExtension.lowercased() == "app", !WrapperFactory.exists(destination) else {
             throw PatchError(message: "기존 앱을 덮어쓰지 않습니다. 다른 새 앱 경로를 지정하세요.")
@@ -41,13 +41,53 @@ enum Prepared {
         try Installer.fm.createDirectory(at: parent, withIntermediateDirectories: true)
         let staged = parent.appendingPathComponent(".dnf-ready-\(UUID().uuidString).app")
         defer { try? Installer.fm.removeItem(at: staged) }
-        try Installer.fm.copyItem(at: source, to: staged)
+        // Assemble native code locally from pinned official archives, just as Creator does.
+        // The downloaded ready app supplies data only; its modified native bundle is never run.
+        let template = try templateArchive ?? Bootstrap.download(Bootstrap.template)
+        let engine = try engineArchive ?? Bootstrap.download(Bootstrap.engine)
+        try WrapperFactory.assemble(templateArchive: template, engineArchive: engine, destination: staged)
+        try Installer.fm.copyItem(at: source.appendingPathComponent(assetPath), to: staged.appendingPathComponent(assetPath))
+        let licenses = source.appendingPathComponent("Contents/Resources/DNF-Licenses")
+        if Installer.fm.fileExists(atPath: licenses.path) {
+            try Installer.fm.copyItem(at: licenses, to: staged.appendingPathComponent("Contents/Resources/DNF-Licenses"))
+        }
         let plist = staged.appendingPathComponent("Contents/Info.plist")
         var settings = try PropertyListSerialization.propertyList(from: Data(contentsOf: plist), options: [], format: nil) as! [String: Any]
-        settings["CFBundleIdentifier"] = "io.github.dnf-sikarugir-patch.wrapper." + UUID().uuidString.lowercased()
-        settings[WrapperFactory.marker] = "1"
+        settings["DNFReadyVersion"] = "1"
+        settings["DNFLocalAssemblyVersion"] = "1"
         try PropertyListSerialization.data(fromPropertyList: settings, format: .xml, options: 0).write(to: plist, options: .atomic)
         try Installer.fm.moveItem(at: staged, to: destination)
+    }
+
+    static func rebuildIncomplete(_ source: URL, wrapper: URL, templateArchive: URL? = nil, engineArchive: URL? = nil) throws {
+        guard WrapperFactory.isOwned(wrapper), !WrapperFactory.prefixReady(wrapper),
+              NSDictionary(contentsOf: wrapper.appendingPathComponent("Contents/Info.plist"))?["DNFReadyVersion"] as? String == "1" else {
+            throw PatchError(message: "완성된 앱이나 직접 만든 앱은 재생성하지 않습니다.")
+        }
+        // Wait only for this prefix. Never kill the user's Wine/game processes.
+        let server = wrapper.appendingPathComponent("Contents/SharedSupport/wine/bin/wineserver")
+        if Installer.fm.isExecutableFile(atPath: server.path),
+           let process = makeWineProcess(arguments: [], wrapper: wrapper) {
+            do {
+                guard try Installer.run(server, ["-w"], environment: process.environment, timeout: 2) == 0 else {
+                    throw PatchError(message: "Wine is active")
+                }
+            } catch {
+                throw PatchError(message: "기존 앱의 Wine 또는 설치 창을 종료한 뒤 다시 실행하세요. 초기화 중인 앱은 옮기지 않습니다.")
+            }
+        }
+        let parent = wrapper.deletingLastPathComponent()
+        let staged = parent.appendingPathComponent(".dnf-rebuild-\(UUID().uuidString).app")
+        defer { try? Installer.fm.removeItem(at: staged) }
+        try copyBundle(source, to: staged, templateArchive: templateArchive, engineArchive: engineArchive)
+        let backup = parent.appendingPathComponent("\(wrapper.deletingPathExtension().lastPathComponent)-before-v0.3.2-\(UUID().uuidString).app")
+        try Installer.fm.moveItem(at: wrapper, to: backup)
+        do { try Installer.fm.moveItem(at: staged, to: wrapper) }
+        catch {
+            try Installer.fm.moveItem(at: backup, to: wrapper)
+            throw error
+        }
+        print("이전 미완료 앱 보관: \(backup.path)")
     }
 
     static var fontDocument: String {
@@ -63,7 +103,8 @@ enum Prepared {
     }
 
     static func isReady(_ wrapper: URL) -> Bool {
-        guard (try? Data(contentsOf: wrapper.appendingPathComponent("Contents/SharedSupport/dnf-ready-complete"))) == Data("prepared-v1\n".utf8),
+        guard WrapperFactory.prefixReady(wrapper),
+              (try? Data(contentsOf: wrapper.appendingPathComponent("Contents/SharedSupport/dnf-ready-complete"))) == Data("prepared-v1\n".utf8),
               Bootstrap.fontsReady(wrapper) else { return false }
         // Neople may update installed executables, so don't compare them to the bundled version's hash.
         return [Bootstrap.pluginPath, Bootstrap.pluginPath.replacingOccurrences(of: "NeopleCustomURLStarter.exe", with: "NeopleInstallerStarter.exe")].allSatisfy {
@@ -79,6 +120,10 @@ enum Prepared {
             guard WrapperFactory.isOwned(wrapper), NSDictionary(contentsOf: wrapper.appendingPathComponent("Contents/Info.plist"))?["DNFReadyVersion"] as? String == "1" else {
                 throw PatchError(message: "기존 앱을 덮어쓰지 않습니다. 기존 앱에는 설치.command를 사용하세요.")
             }
+            let settings = NSDictionary(contentsOf: wrapper.appendingPathComponent("Contents/Info.plist"))
+            if settings?["DNFLocalAssemblyVersion"] as? String != "1", !WrapperFactory.prefixReady(wrapper) {
+                try rebuildIncomplete(source, wrapper: wrapper)
+            }
         } else { try copyBundle(source, to: wrapper) }
         let support = wrapper.appendingPathComponent("Contents/SharedSupport")
         let wine = support.appendingPathComponent("wine")
@@ -92,10 +137,7 @@ enum Prepared {
                   Installer.fm.isExecutableFile(atPath: stage.appendingPathComponent("wswine.bundle/bin/wine").path) else { throw PatchError(message: "Wine 엔진 압축 해제에 실패했습니다.") }
             try Installer.fm.moveItem(at: stage.appendingPathComponent("wswine.bundle"), to: wine)
         }
-        if !Installer.fm.fileExists(atPath: support.appendingPathComponent("prefix/system.reg").path) {
-            print("이 Mac에 맞는 Wine prefix 초기화 중…")
-            guard try Installer.run(wrapper.appendingPathComponent("Contents/MacOS/Sikarugir"), ["WSS-wineprefixcreate"], timeout: 300) == 0 else { throw PatchError(message: "Wine 초기화에 실패했습니다. 시작.command를 다시 실행하세요.") }
-        }
+        try WrapperFactory.initializePrefix(wrapper)
         let ready = support.appendingPathComponent("dnf-ready-complete")
         if !isReady(wrapper) {
             print("동봉한 폰트와 네오플 플러그인 설정 중…")

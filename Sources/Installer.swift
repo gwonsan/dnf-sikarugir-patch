@@ -43,14 +43,23 @@ enum Installer {
     }
 
     @discardableResult
-    static func run(_ executable: URL, _ args: [String], environment: [String: String]? = nil, timeout: TimeInterval = 60) throws -> Int32 {
+    static func run(_ executable: URL, _ args: [String], environment: [String: String]? = nil, timeout: TimeInterval = 60, log: URL? = nil) throws -> Int32 {
         let process = Process()
         process.executableURL = executable
         process.arguments = args
         process.environment = environment
         process.standardInput = FileHandle.nullDevice
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
+        var output: FileHandle?
+        if let log {
+            try fm.createDirectory(at: log.deletingLastPathComponent(), withIntermediateDirectories: true)
+            guard fm.createFile(atPath: log.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
+                throw PatchError(message: "초기화 로그를 만들지 못했습니다: \(log.path)")
+            }
+            output = try FileHandle(forWritingTo: log)
+        }
+        defer { try? output?.close() }
+        process.standardOutput = output ?? FileHandle.nullDevice
+        process.standardError = output ?? FileHandle.nullDevice
         try process.run()
         let deadline = Date().addingTimeInterval(timeout)
         while process.isRunning && Date() < deadline { Thread.sleep(forTimeInterval: 0.1) }

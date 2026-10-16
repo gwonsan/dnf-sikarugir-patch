@@ -7,6 +7,6 @@ if [[ ! -x "$task_binary" ]]; then
   task_binary="$task_root/dist/DNF-Sikarugir-Patch/DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
 fi
 task_code=0
-"$task_binary" --uninstall || task_code=$?
+"$task_binary" --uninstall "$@" || task_code=$?
 if [[ -t 0 ]]; then read -r -p "Enter를 누르면 종료합니다."; fi
 exit "$task_code"

@@ -1,5 +1,16 @@
 # Validation
 
+## Installer recovery and bridge coordination — unreleased (2026-10-16)
+
+- Local branch `fix/installer-recovery`; these changes are not included in v0.3.3. The user's existing v0.3.3 gameplay confirmation does not validate this branch.
+- Missing-wrapper restoration first failed against the old implementation, then passed with a private recovery backup, handler restoration and stale-state cleanup. Tests also cover explicit connection-only recovery, retaining state after Wine/handler failures, owned-helper removal and preservation of unrelated apps/game data. Registry and Launch Services writes are replaced at their external boundaries; production cleanup and backup operations run on temporary files.
+- A corrupted download cache first reproduced the repeated checksum error. Tests now exercise verified replacement, offline reuse of valid cache, rejection of invalid replacement data and partial-file cleanup. The network transfer is replaced with fixture bytes; production checksum verification is used.
+- Bridge subprocess tests reproduce and cover idle/success exit, multiple active requests, exclusion between web launch and installation, persistent errors, successful retry, detached-process survival, Quit during an active request, and mixed invalid/valid URL batches. They run real temporary shell children rather than Wine and never use authentication URLs. Startup is delivered directly to the delegate because unbundled executables do not reliably receive Launch Services startup notifications under the sandbox.
+- Explicit Quit is canceled while children are active and requested again after they finish. Using AppKit's deferred-termination modal loop caused the regression fixture to hang, so completion handling stays in the normal event loop. See [Apple's termination behavior](https://developer.apple.com/documentation/appkit/nsapplication/terminate(_:)).
+- Eight Swift suites (including ten bridge lifecycle scenarios) and five Python tests passed locally. The sandboxed AppKit window test emitted the existing OS notification registration warning; its assertions passed. No installed game, real patch state, or URL handler was modified.
+- The release build passed in a disposable staging directory, including arm64/x86_64 architecture checks, strict ad-hoc signature verification and rejection of invalid recovery options before accessing installation state. Build fixtures were removed; existing v0.3.3 ZIPs were not replaced.
+- Full installation, actual Safari GAME START and gameplay with this branch remain to be tested in an isolated macOS environment before release.
+
 ## Source cleanup and installation permission — 0.3.3 (2026-10-16)
 
 - On 2026-10-16, the user directly confirmed that v0.3.3 works normally.

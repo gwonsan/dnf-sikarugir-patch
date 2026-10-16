@@ -23,6 +23,17 @@ class StartCommandTests(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
 
 
+    def test_recovery_command_forwards_explicit_connection_only_option(self):
+        with tempfile.TemporaryDirectory(prefix="DNF restore ") as tmp:
+            root = pathlib.Path(tmp)
+            shutil.copy2(ROOT / "복원.command", root)
+            binary = root / "DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
+            binary.parent.mkdir(parents=True)
+            binary.write_text('#!/bin/bash\n[[ "$#" == 2 && "$1" == --uninstall && "$2" == --connection-only ]] || exit 99\nexit 42\n')
+            binary.chmod(0o755)
+            result = subprocess.run(["/bin/bash", str(root / "복원.command"), "--connection-only"], stdin=subprocess.DEVNULL, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 42)
+
     def test_install_commands_clear_only_themselves_and_helper_before_launch(self):
         for command in ["시작.command", "설치.command", "처음설치.command"]:
             with self.subTest(command=command), tempfile.TemporaryDirectory(prefix="DNF permission ") as tmp:

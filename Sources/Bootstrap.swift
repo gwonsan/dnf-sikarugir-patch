@@ -23,23 +23,33 @@ enum Bootstrap {
         return fontAvailable(wrapper) && (try? Data(contentsOf: marker)) == fontCompletion
     }
 
-    static func download(_ resource: Resource) throws -> URL {
-        let cache = Installer.support.appendingPathComponent("Downloads")
+    static func download(_ resource: Resource, cache: URL = Installer.support.appendingPathComponent("Downloads"),
+                         fetch: (Resource, URL) throws -> Void = fetchResource) throws -> URL {
         try Installer.fm.createDirectory(at: cache, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let destination = cache.appendingPathComponent(resource.name)
         if Installer.fm.fileExists(atPath: destination.path) {
-            try WrapperFactory.verifyArchive(destination, sha256: resource.sha256)
-            return destination
+            do {
+                try WrapperFactory.verifyArchive(destination, sha256: resource.sha256)
+                return destination
+            } catch is PatchError {
+                // Only a checksum mismatch is repairable here; propagate filesystem errors.
+                print("손상된 다운로드 캐시를 지우고 다시 받습니다: \(resource.name)")
+                try Installer.fm.removeItem(at: destination)
+            }
         }
         print("공식 서버에서 다운로드: \(resource.name)…")
         let partial = cache.appendingPathComponent(resource.name + "." + UUID().uuidString + ".part")
         defer { try? Installer.fm.removeItem(at: partial) }
-        guard try Installer.run(URL(fileURLWithPath: "/usr/bin/curl"), ["--fail", "--location", "--proto", "=https", "--proto-redir", "=https", "--retry", "2", "--connect-timeout", "20", "--max-time", "900", "--output", partial.path, resource.url], timeout: 1000) == 0 else {
-            throw PatchError(message: "공식 파일 다운로드에 실패했습니다: \(resource.name). 인터넷 연결을 확인하고 다시 실행하세요.")
-        }
+        try fetch(resource, partial)
         try WrapperFactory.verifyArchive(partial, sha256: resource.sha256)
         try Installer.fm.moveItem(at: partial, to: destination)
         return destination
+    }
+
+    private static func fetchResource(_ resource: Resource, _ partial: URL) throws {
+        guard try Installer.run(URL(fileURLWithPath: "/usr/bin/curl"), ["--fail", "--location", "--proto", "=https", "--proto-redir", "=https", "--retry", "2", "--connect-timeout", "20", "--max-time", "900", "--output", partial.path, resource.url], timeout: 1000) == 0 else {
+            throw PatchError(message: "공식 파일 다운로드에 실패했습니다: \(resource.name). 인터넷 연결을 확인하고 다시 실행하세요.")
+        }
     }
 
     static func createWrapper(_ wrapper: URL) throws {

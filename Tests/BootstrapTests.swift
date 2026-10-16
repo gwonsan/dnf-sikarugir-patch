@@ -28,6 +28,31 @@ func tar(_ source: URL, _ name: String, _ archive: URL) throws {
         try Data("changed".utf8).write(to: integrity)
         rejects({ try WrapperFactory.verifyArchive(integrity, sha256: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad") }, "changed downloads must be rejected")
 
+        let cache = root.appendingPathComponent("Downloads")
+        try fm.createDirectory(at: cache, withIntermediateDirectories: true)
+        let cached = cache.appendingPathComponent("fixture.tar")
+        let resource = Bootstrap.Resource(name: "fixture.tar", url: "https://example.invalid/fixture.tar", sha256: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+        try Data("corrupt".utf8).write(to: cached)
+        do {
+            _ = try Bootstrap.download(resource, cache: cache) { _, partial in
+                try Data("abc".utf8).write(to: partial)
+            }
+        } catch { print("FAIL: corrupted cache must be replaced by a verified download: \(error.localizedDescription)"); exit(1) }
+        let repaired = try Data(contentsOf: cached)
+        check(repaired == Data("abc".utf8), "repair only after verifying the fresh download")
+        _ = try Bootstrap.download(resource, cache: cache) { _, _ in
+            throw PatchError(message: "valid cache must work offline")
+        }
+        try Data("corrupt again".utf8).write(to: cached)
+        rejects({
+            _ = try Bootstrap.download(resource, cache: cache) { _, partial in
+                try Data("bad server response".utf8).write(to: partial)
+            }
+        }, "reject freshly downloaded files with incorrect hashes")
+        check(!fm.fileExists(atPath: cached.path), "do not retain an invalid cache after failed repair")
+        let remaining = try fm.contentsOfDirectory(atPath: cache.path)
+        check(remaining.isEmpty, "failed download cleans partial files")
+
         let template = root.appendingPathComponent("Template-1.0.21.app")
         let contents = template.appendingPathComponent("Contents")
         try fm.createDirectory(at: contents.appendingPathComponent("MacOS"), withIntermediateDirectories: true)

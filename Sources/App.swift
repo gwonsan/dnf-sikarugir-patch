@@ -24,7 +24,10 @@ import AppKit
                     let wrapper = try Installer.chooseWrapper(args.count > 1 ? args[1] : nil)
                     try PatchLock.withLock(directory: Installer.support) { try Installer.install(wrapper) }
                 case "--uninstall":
-                    try PatchLock.withLock(directory: Installer.support) { try Installer.uninstall() }
+                    guard args.count == 1 || (args.count == 2 && args[1] == "--connection-only") else {
+                        throw PatchError(message: "사용법: --uninstall [--connection-only]")
+                    }
+                    try PatchLock.withLock(directory: Installer.support) { try Installer.uninstall(connectionOnly: args.count == 2) }
                 case "--diagnose":
                     let wrapper = args.count > 1 ? URL(fileURLWithPath: args[1]) : URL(fileURLWithPath: try Installer.readState().wrapperPath)
                     try Installer.diagnose(wrapper)

@@ -1,5 +1,14 @@
 # Validation
 
+## Source cleanup and installation permission — 0.3.3 (2026-10-16)
+
+- Ready installation permanently deletes the validated, prefix-free source bundle without moving it to Trash only after the patch installer succeeds. Installed games, overlapping source/destination paths, source symlinks and incomplete destinations are protected; cleanup failures are reported without failing the successful installation. Preparation-only mode does not clean up.
+- Regression tests exercise actual deletion of an isolated source fixture, verify its open asset has zero filesystem links (not moved to Trash), and cover overlapping paths, missing source, an injected deletion failure and preservation of the ready installed fixture. The start-command regression first failed on its old missing-source check, then passed after allowing the installer to decide whether an existing installation can be reused.
+- Six Swift suites and four Python tests passed locally. The sandboxed AppKit test emitted the existing OS notification registration warning; its assertions passed. No real game, patch state or URL handler was changed.
+- The three installation commands clear quarantine on themselves and their helper before starting it. Installation clears quarantine on the selected Sikarugir wrapper before initializing or running Wine, including incomplete-app recovery. `xattr -drs` preserves external symlink targets and unrelated attributes; failure stops installation. Regression tests first failed with quarantined fixtures, then passed after the permission steps were added. The actual game is never used for these tests.
+- README explains that the first blocked command must still be opened explicitly (Open Anyway or `/bin/bash`), and includes a separate installed-DNF recovery command. This is not Developer ID signing, notarization, a global Gatekeeper change or a guarantee against every launch warning.
+- A new-Mac Gatekeeper acceptance test and end-to-end install/source-deletion/gameplay on UTM have not been repeated for this version.
+
 ## Fresh local assembly — 0.3.2 (2026-10-15)
 
 - In UTM, the user reported that execution works but the `.command` warning remains. They also reported a dangling `drive_c` link and confirmed they were inspecting the DNF.app in the extracted download folder, not the installed app. That source is intentionally prefix-free. Guest macOS details, final installation checks, missing-Rosetta coverage and game download/gameplay in the VM were not independently established.

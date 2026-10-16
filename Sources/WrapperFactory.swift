@@ -35,6 +35,7 @@ enum WrapperFactory {
     }
 
     static func initializePrefix(_ wrapper: URL, timeout: TimeInterval = 300) throws {
+        try Installer.allowWrapperExecution(wrapper)
         if prefixReady(wrapper) { return }
         let support = wrapper.appendingPathComponent("Contents/SharedSupport")
         guard (try? FileManager.default.destinationOfSymbolicLink(atPath: support.appendingPathComponent("prefix").path)) == nil else {

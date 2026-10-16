@@ -10,9 +10,10 @@
 
 ## 가장 간단한 설치
 
-1. [Releases](https://github.com/gwonsan/dnf-sikarugir-patch/releases)에서 `DNF-Ready-v0.3.2.zip`을 받아 압축을 풉니다.
+1. [Releases](https://github.com/gwonsan/dnf-sikarugir-patch/releases)에서 `DNF-Ready-v0.3.3.zip`을 받아 압축을 풉니다.
 2. 폴더 안의 `시작.command`를 더블클릭합니다. Rosetta가 없으면 Apple 설치 창의 약관을 확인하고 동의합니다. 이후 공식 템플릿·Wine을 받아 이 Mac에서 앱과 Windows 환경을 만들고 패치를 적용합니다. ZIP 안의 `DNF.app`을 직접 실행하지 마세요.
-3. 열린 던파 홈페이지에서 **Safari로 로그인하고 GAME START**를 누릅니다. 브라우저의 외부 앱 실행 확인을 허용하고 게임을 내려받습니다.
+3. 설치가 성공하면 압축 해제 폴더의 준비용 `DNF.app`은 휴지통을 거치지 않고 삭제됩니다. 설치된 앱과 게임 파일은 유지됩니다.
+4. 열린 던파 홈페이지에서 **Safari로 로그인하고 GAME START**를 누릅니다. 브라우저의 외부 앱 실행 확인을 허용하고 게임을 내려받습니다.
 
 **처음 실행할 때 macOS가 차단하면**
 
@@ -24,6 +25,33 @@
 
 `그래도 열기`가 보이지 않으면 해당 파일 실행을 다시 시도한 후 설정을 확인하세요. [Apple 공식 안내](https://support.apple.com/ko-kr/102445)
 
+### 설정 대신 터미널에서 시작하기
+
+v0.3.3의 `시작.command`, `설치.command`, `처음설치.command`에는 실행 허용 처리가 들어 있습니다. 실행하면 **해당 명령 파일·패치 도우미·설치 대상 DNF.app의 다운로드 격리 표시(`com.apple.quarantine`)를 자동으로 제거**한 뒤 설치합니다. 다른 폴더를 가리키는 링크는 따라가지 않으며, macOS 전체 보안 설정을 바꾸지 않습니다.
+
+다만 **차단된 `.command`는 자기 안의 명령을 실행할 수 없습니다.** 최초 한 번은 위의 **그래도 열기**를 사용하거나, 직접 받은 설치 파일을 신뢰한다면 다음과 같이 터미널에서 시작하세요.
+
+1. **터미널**을 열고 `cd `를 입력합니다(뒤에 공백 포함). 압축을 푼 **DNF-Ready 폴더**를 터미널로 끌어 놓고 Enter를 누릅니다.
+2. 아래 명령을 붙여 넣고 Enter를 누릅니다. 실행 허용 처리부터 설치까지 이어서 진행합니다.
+
+```sh
+/bin/bash "./시작.command"
+```
+
+기존 앱에 패치만 적용하려면 작은 패치 ZIP의 압축 해제 폴더에서 `/bin/bash "./설치.command"`를 실행하세요. 빈 앱부터 수동 설치할 때는 `/bin/bash "./처음설치.command"`를 사용합니다. 격리 표시 해제 자체에는 관리자 암호가 필요하지 않지만, 대상 파일의 쓰기 권한이 없으면 오류를 표시하고 중단합니다.
+
+이 처리는 Apple 서명·공증을 추가하거나 실제로 손상된 파일을 고치는 기능이 아닙니다. 이 저장소의 [공식 Releases](https://github.com/gwonsan/dnf-sikarugir-patch/releases)에서 직접 받은 파일을 신뢰하는 경우에만 실행하세요. “컴퓨터를 손상시킵니다” 같은 악성코드 감지 경고에는 사용하지 마세요. 파일이 실제로 손상됐거나 출처가 불분명하면 다시 내려받으세요. 회사·학교 관리 정책 등 다른 차단 원인까지 해제하지는 않습니다.
+
+**설치된 DNF.app에 “손상되었기 때문에 열 수 없습니다”가 뜬다면**
+
+압축을 푼 폴더의 `DNF.app`은 설치 재료입니다. 이를 직접 열지 말고 `시작.command`로 설치하세요. 설치가 끝난 **사용자 홈 → Applications → Sikarugir → DNF.app**에서 다운로드 격리로 인한 경고가 발생했다면, 출처를 확인한 뒤 해당 앱에만 다음 명령을 적용할 수 있습니다.
+
+```sh
+/usr/bin/xattr -drs com.apple.quarantine "$HOME/Applications/Sikarugir/DNF.app"
+```
+
+설치 위치를 직접 바꿨다면 마지막 경로도 바꾸세요. 완료 후 Safari에서 GAME START를 다시 누릅니다. 격리 표시를 제거해도 실제 파일 손상, 잘못된 서명 또는 다른 차단 원인에 의한 경고가 해결되는 것은 아닙니다. 같은 경고가 계속되면 명령을 반복하기보다 오류와 설치 로그를 확인하세요.
+
 정상 실행 시 패치 도우미는 안내 창이나 Dock 아이콘 없이 실행 요청을 전달합니다. 실행 요청 전달에 실패하면 오류 창이 표시됩니다.
 
 **60초 설치 안내 영상**
@@ -32,14 +60,14 @@ https://github.com/user-attachments/assets/e18cd303-6cdd-4ce7-a436-aa5dc20c9b9b
 
 [영상 다운로드 · MP4](https://github.com/gwonsan/dnf-sikarugir-patch/releases/download/v0.3.0/DNF-Install-Guide-v0.3.0.mp4)
 
-실제 화면 캡처와 단계별 자막으로 만든 요약 영상입니다. 영상과 아래 화면은 v0.3.0 기준이며, v0.3.2도 설치 순서는 같습니다. 파일 다운로드·자동 설치·게임 다운로드에는 별도의 시간이 필요합니다.
+실제 화면 캡처와 단계별 자막으로 만든 요약 영상입니다. 영상과 아래 화면은 v0.3.0 기준입니다. v0.3.3도 설치 순서는 같고, 설치 완료 후 준비용 앱이 바로 삭제됩니다. 파일 다운로드·자동 설치·게임 다운로드에는 별도의 시간이 필요합니다.
 
 <details>
 <summary><strong>설치 화면 4장으로 따라하기</strong></summary>
 
 ### 1. 준비된 ZIP 다운로드
 
-[v0.3.2 배포 페이지](https://github.com/gwonsan/dnf-sikarugir-patch/releases/tag/v0.3.2)의 **Assets → DNF-Ready-v0.3.2.zip**을 선택합니다. 처음 설치할 때는 준비된 DNF.app이 포함된 큰 ZIP을 받으세요.
+[v0.3.3 배포 페이지](https://github.com/gwonsan/dnf-sikarugir-patch/releases/tag/v0.3.3)의 **Assets → DNF-Ready-v0.3.3.zip**을 선택합니다. 처음 설치할 때는 준비된 DNF.app이 포함된 큰 ZIP을 받으세요.
 
 ![GitHub 배포 페이지의 준비된 DNF-Ready ZIP 다운로드 위치](docs/images/install-01-release.jpg)
 
@@ -87,6 +115,8 @@ Sikarugir Creator에서 빈 앱을 만들거나 Configure를 열고 플러그인
 
 폰트는 Configure의 `fakejapanese`와 같은 Source Han Sans 및 일본어 매핑을 등록하고, 한글 글꼴 대체 이름 16개를 Source Han Sans K로 연결합니다. D3DMetal은 미리 켜져 있습니다. 배포 구성과 각 파일의 출처·라이선스는 [THIRD_PARTY.md](THIRD_PARTY.md)에 있습니다.
 
+설치와 홈페이지 연결이 모두 성공하면 준비용 앱만 휴지통을 거치지 않고 영구 삭제합니다. 실패한 경우에는 재시도할 수 있게 남겨두며, 준비용 앱 삭제를 완료하지 못해도 설치 성공은 유지되며 오류를 안내합니다. 설치된 앱과 준비용 앱의 경로가 겹치거나 준비용 앱에 Windows 환경이 생긴 경우에는 자동 정리하지 않습니다. 준비용 앱이 없어도 기존 설치가 정상이면 `시작.command`를 다시 실행할 수 있습니다. 새로 설치하거나 복구에 필요한 파일이 없으면 ZIP을 다시 압축 해제하세요.
+
 기존 앱을 덮어쓰지 않습니다. 현재 패치가 같은 경로의 정상 앱에 연결돼 있으면 그 앱에 홈페이지 패치만 다시 적용합니다. 다른 앱에 적용한 패치가 있으면 먼저 `복원.command`를 실행하세요. 새 앱 준비 도중 중단됐다면 같은 명령을 다시 실행해 이어서 진행합니다. v0.3.1 이하에서 복사된 앱의 Windows 환경이 미완성인 경우, 해당 Wine이 종료된 것을 확인하고 앱 전체를 같은 폴더의 `DNF-before-v0.3.2-….app`으로 보관한 뒤 새로 조립합니다. 정상 초기화된 기존 앱은 재생성하지 않습니다.
 
 새 설치 위치를 지정할 수도 있습니다.
@@ -97,7 +127,7 @@ bash 시작.command "$HOME/Applications/Sikarugir/DNF.app"
 
 ## 이미 정상 작동하는 앱에 패치만 적용
 
-작은 `DNF-Sikarugir-Patch-v0.3.2.zip`에는 준비된 DNF.app이 없습니다. 이 ZIP은 기존 앱 패치나 아래의 수동 설치 경로에 사용합니다.
+작은 `DNF-Sikarugir-Patch-v0.3.3.zip`에는 준비된 DNF.app이 없습니다. 이 ZIP은 기존 앱 패치나 아래의 수동 설치 경로에 사용합니다.
 
 1. `설치.command`를 더블클릭합니다. 기본 경로의 `DNF.app`을 찾고, 없으면 앱 선택 창이 뜹니다.
 2. 설치 완료 후 홈페이지에서 로그인하고 **GAME START**를 누릅니다.
@@ -125,7 +155,7 @@ Sikarugir Creator에서 직접 작업할 때의 순서는 다음과 같습니다
 
 ## 처음 설치가 멈추거나 손상 경고가 나온 경우
 
-v0.3.1 이하에서 `이 Mac에 맞는 Wine prefix 초기화 중…`에 멈췄다면 기존 설치·Wine 창을 종료하고 **v0.3.2의 `시작.command`**를 실행하세요. v0.3.2는 다운로드된 DNF 앱을 그대로 실행하지 않고 공식 자료로 새 앱을 조립합니다. Gatekeeper를 끄거나 격리 표시를 자동 제거하지 않습니다. Apple 공증을 받은 배포본은 아니므로 명령 파일·도우미에 대한 macOS 실행 허용이 필요할 수 있습니다.
+v0.3.1 이하에서 `이 Mac에 맞는 Wine prefix 초기화 중…`에 멈췄다면 기존 설치·Wine 창을 종료하고 **최신 버전의 `시작.command`**를 실행하세요. v0.3.2는 다운로드된 DNF 앱을 그대로 실행하지 않고 공식 자료로 새 앱을 조립합니다. v0.3.3은 설치 명령 파일·도우미와 설치 대상 앱의 격리 표시만 자동 제거합니다. macOS 전체 보안 설정은 바꾸지 않습니다. Apple 공증을 받은 배포본은 아니므로 명령 파일·도우미에 대한 macOS 실행 허용이 필요할 수 있습니다.
 
 초기화에는 최대 5분 정도 걸릴 수 있습니다. 성공하려면 레지스트리 두 개, `cmd.exe`, 32비트·64비트 Program Files 폴더가 모두 있어야 합니다. 파일이 부족하면 폰트·플러그인 설치로 넘어가지 않고 오류를 표시합니다. 초기화 로그 위치도 터미널에 출력합니다.
 
@@ -152,7 +182,7 @@ bash scripts/test.sh
 bash scripts/build.sh
 ```
 
-결과는 arm64와 x86_64를 포함하는 `dist/DNF-Sikarugir-Patch-v0.3.2.zip`입니다. 준비된 앱 패키지는 검증된 공식 템플릿과 폰트, 설치된 공식 플러그인 파일 두 개를 지정해 별도로 만듭니다.
+결과는 arm64와 x86_64를 포함하는 `dist/DNF-Sikarugir-Patch-v0.3.3.zip`입니다. 준비된 앱 패키지는 검증된 공식 템플릿과 폰트, 설치된 공식 플러그인 파일 두 개를 지정해 별도로 만듭니다.
 
 ```sh
 python3 scripts/package-ready.py \
@@ -160,8 +190,8 @@ python3 scripts/package-ready.py \
   --font /path/to/sourcehansans.ttc \
   --plugin-directory /path/to/NeoplePlugin \
   --font-license /path/to/SourceHanSans-OFL.txt \
-  --destination dist/DNF-Ready-v0.3.2/DNF.app
+  --destination dist/DNF-Ready-v0.3.3/DNF.app
 bash scripts/build-ready.sh
 ```
 
-입력 파일의 고정된 SHA-256을 확인하고, 사용한 앱의 Wine 환경을 복사하지 않습니다. 결과는 `dist/DNF-Ready-v0.3.2.zip`입니다. 소스 저장소에는 게임·Wine 바이너리, 사용자 레지스트리·백업과 인증 로그를 넣지 않습니다. 패치 자체 코드는 MIT이며 동봉한 구성 요소에는 각 배포처의 라이선스가 적용됩니다.
+입력 파일의 고정된 SHA-256을 확인하고, 사용한 앱의 Wine 환경을 복사하지 않습니다. 결과는 `dist/DNF-Ready-v0.3.3.zip`입니다. 소스 저장소에는 게임·Wine 바이너리, 사용자 레지스트리·백업과 인증 로그를 넣지 않습니다. 패치 자체 코드는 MIT이며 동봉한 구성 요소에는 각 배포처의 라이선스가 적용됩니다.

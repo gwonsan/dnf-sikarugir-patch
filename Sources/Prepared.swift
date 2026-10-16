@@ -65,6 +65,7 @@ enum Prepared {
             throw PatchError(message: "완성된 앱이나 직접 만든 앱은 재생성하지 않습니다.")
         }
         // Wait only for this prefix. Never kill the user's Wine/game processes.
+        try Installer.allowWrapperExecution(wrapper)
         let server = wrapper.appendingPathComponent("Contents/SharedSupport/wine/bin/wineserver")
         if Installer.fm.isExecutableFile(atPath: server.path),
            let process = makeWineProcess(arguments: [], wrapper: wrapper) {
@@ -156,14 +157,38 @@ enum Prepared {
         print("준비된 앱 설치 완료: \(wrapper.path)")
     }
 
+    static func cleanupSource(_ source: URL, wrapper: URL, remove: (URL) throws -> Void = {
+        try Installer.fm.removeItem(at: $0)
+    }) throws {
+        guard WrapperFactory.exists(source) else { return }
+        let input = source.resolvingSymlinksInPath().standardizedFileURL.path
+        let installed = wrapper.resolvingSymlinksInPath().standardizedFileURL.path
+        guard input != installed,
+              !installed.hasPrefix(input + "/"), !input.hasPrefix(installed + "/"),
+              source.pathExtension.lowercased() == "app",
+              WrapperFactory.isOwned(wrapper), isReady(wrapper) else {
+            throw PatchError(message: "설치된 앱과 분리된 준비용 앱만 정리할 수 있습니다.")
+        }
+        // Revalidate before deleting: never discard an initialized prefix or a modified source.
+        try validate(source)
+        try remove(source)
+        print("다운로드한 준비용 앱을 삭제했습니다: \(source.path)")
+    }
+
     static func install(_ source: URL, wrapper: URL) throws {
         let existing = Installer.fm.fileExists(atPath: Installer.stateFile.path) ? try Installer.readState() : nil
         if let existing, existing.wrapperPath != wrapper.path { throw PatchError(message: "다른 앱에 적용한 패치가 있습니다. 먼저 복원.command를 실행하세요.") }
         let preparedWrapper = NSDictionary(contentsOf: wrapper.appendingPathComponent("Contents/Info.plist"))?["DNFReadyVersion"] as? String == "1"
         if !(existing?.wrapperPath == wrapper.path && makeLaunchProcess(request: "neople://patch-check", wrapper: wrapper) != nil && (!preparedWrapper || isReady(wrapper))) {
+            guard WrapperFactory.exists(source) else {
+                throw PatchError(message: "준비용 DNF.app이 없고 재사용할 설치도 확인되지 않습니다. DNF-Ready ZIP을 다시 압축 해제한 뒤 시작.command를 실행하세요.")
+            }
             try prepare(source, wrapper: wrapper)
         }
         try Installer.install(wrapper)
+        // Cleanup is best-effort and only follows a successful patch/state installation.
+        do { try cleanupSource(source, wrapper: wrapper) }
+        catch { print("설치는 완료됐지만 준비용 앱 삭제를 완료하지 못했습니다: \(error.localizedDescription)") }
         NSWorkspace.shared.open(URL(string: "https://df.nexon.com")!)
         print("홈페이지 실행 연결 완료. 로그인하고 GAME START를 눌러 주세요.")
     }

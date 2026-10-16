@@ -59,7 +59,25 @@ func tar(_ source: URL, _ name: String, _ archive: URL) throws {
         try fm.createDirectory(at: prefix, withIntermediateDirectories: true)
         try Data("partial registry".utf8).write(to: prefix.appendingPathComponent("system.reg"))
         check(!WrapperFactory.prefixReady(app), "partial Windows environment is not complete")
+        let xattr = URL(fileURLWithPath: "/usr/bin/xattr")
+        let outside = root.appendingPathComponent("unrelated-file")
+        try Data("keep".utf8).write(to: outside)
+        try fm.createSymbolicLink(at: app.appendingPathComponent("external-link"), withDestinationURL: outside)
+        for file in [app, app.appendingPathComponent("Contents/MacOS/Sikarugir"), outside] {
+            let marked = try Installer.run(xattr, ["-w", "com.apple.quarantine", "0083;test;DNF;", file.path])
+            check(marked == 0, "quarantined fixture")
+        }
+        let keep = try Installer.run(xattr, ["-w", "org.dnf.keep", "keep", app.path])
+        check(keep == 0, "unrelated attribute fixture")
         rejects({ try WrapperFactory.initializePrefix(app) }, "zero launcher exit without Windows files is rejected")
+        for file in [app, app.appendingPathComponent("Contents/MacOS/Sikarugir")] {
+            let status = try Installer.run(xattr, ["-p", "com.apple.quarantine", file.path])
+            check(status != 0, "clear wrapper quarantine before attempting Wine initialization")
+        }
+        let externalStatus = try Installer.run(xattr, ["-p", "com.apple.quarantine", outside.path])
+        let keepStatus = try Installer.run(xattr, ["-p", "org.dnf.keep", app.path])
+        check(externalStatus == 0 && keepStatus == 0, "preserve external targets and unrelated attributes")
+
         let installedLauncher = app.appendingPathComponent("Contents/MacOS/Sikarugir")
         let script = """
         #!/bin/sh

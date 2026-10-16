@@ -21,5 +21,5 @@ codesign --verify --deep --strict "$task_app"
 cp "$task_root/시작.command" "$task_root/처음설치.command" "$task_root/설치.command" "$task_root/복원.command" "$task_root/진단.command" "$task_root/README.md" "$task_root/LICENSE" "$task_root/THIRD_PARTY.md" "$task_dist/"
 ditto "$task_root/docs/images" "$task_dist/docs/images"
 chmod +x "$task_dist/"*.command
-ditto -c -k --keepParent --norsrc --noextattr "$task_dist" "$task_root/dist/DNF-Sikarugir-Patch-v0.3.2.zip"
-echo "빌드 완료: dist/DNF-Sikarugir-Patch-v0.3.2.zip"
+ditto -c -k --keepParent --norsrc --noextattr "$task_dist" "$task_root/dist/DNF-Sikarugir-Patch-v0.3.3.zip"
+echo "빌드 완료: dist/DNF-Sikarugir-Patch-v0.3.3.zip"

@@ -132,10 +132,24 @@ enum Installer {
         return FontPatch.snapshot(text)
     }
 
+    static func allowWrapperExecution(_ wrapper: URL) throws {
+        guard wrapper.pathExtension.lowercased() == "app",
+              (try? fm.destinationOfSymbolicLink(atPath: wrapper.path)) == nil,
+              fm.isExecutableFile(atPath: wrapper.appendingPathComponent("Contents/MacOS/Sikarugir").path) else {
+            throw PatchError(message: "실제 Sikarugir 앱 경로에서만 실행 허용을 준비할 수 있습니다: \(wrapper.path)")
+        }
+        print("설치 대상 앱의 다운로드 차단 표시 해제 중…")
+        // -s keeps Wine's links to the user's home and other external files untouched.
+        guard try run(URL(fileURLWithPath: "/usr/bin/xattr"), ["-drs", "com.apple.quarantine", wrapper.path], timeout: 120) == 0 else {
+            throw PatchError(message: "앱의 다운로드 차단 표시를 해제하지 못했습니다. 해당 앱의 쓰기 권한을 확인하세요: \(wrapper.path)")
+        }
+    }
+
     static func install(_ wrapper: URL) throws {
         guard makeLaunchProcess(request: "neople://patch-check", wrapper: wrapper) != nil else {
             throw PatchError(message: "선택한 앱에 Wine 또는 네오플 플러그인이 없습니다. Sikarugir에 네오플 플러그인을 먼저 설치해 주세요.")
         }
+        try allowWrapperExecution(wrapper)
         guard try wine(wrapper, ["C:\\windows\\system32\\cmd.exe", "/c", "exit 0"]) == 0 else {
             throw PatchError(message: "Wine 실행 진단에 실패했습니다. Sikarugir Wine 11 및 Rosetta가 필요합니다.")
         }

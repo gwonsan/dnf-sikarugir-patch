@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 func check(_ condition: @autoclosure () -> Bool, _ message: String) {
     if !condition() { print("FAIL: \(message)"); exit(1) }
@@ -80,6 +81,8 @@ func rejects(_ operation: () throws -> Void, _ message: String) {
         try fm.moveItem(at: assets, to: externalAssets)
         try fm.createSymbolicLink(atPath: assets.path, withDestinationPath: externalAssets.path)
         rejects({ try Prepared.validate(source) }, "never distribute an asset directory pointing outside the bundle")
+        try fm.removeItem(at: assets)
+        try fm.moveItem(at: externalAssets, to: assets)
         check(Prepared.fontDocument.contains("\"Source Han Sans K (TrueType)\"=\"sourcehansans.ttc\""), "register the Korean font face")
         check(Prepared.fontDocument.contains("[HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Fonts]"), "register fonts in the legacy Windows section too")
         check(Prepared.fontDocument.contains("\"ＭＳ Ｐゴシック\"=\"Source Han Sans\""), "preserve fakejapanese aliases")
@@ -104,6 +107,32 @@ func rejects(_ operation: () throws -> Void, _ message: String) {
         }
         check(Prepared.isReady(destination), "completed assets may resume without overwriting updated plugins")
         rejects({ try Prepared.rebuildIncomplete(source, wrapper: destination, templateArchive: templateTar, engineArchive: engineTar) }, "never rebuild a complete Windows environment")
+        let downloaded = root.appendingPathComponent("Download With Spaces/DNF.app")
+        try fm.createDirectory(at: downloaded.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fm.copyItem(at: source, to: downloaded)
+        rejects({ try Prepared.cleanupSource(destination, wrapper: destination) }, "never delete the installed app")
+        let alias = root.appendingPathComponent("Installed alias.app")
+        try fm.createSymbolicLink(at: alias, withDestinationURL: destination)
+        rejects({ try Prepared.cleanupSource(alias, wrapper: destination) }, "never delete an alias of the installed app")
+        let nestedSource = destination.appendingPathComponent("Nested.app")
+        try fm.copyItem(at: source, to: nestedSource)
+        rejects({ try Prepared.cleanupSource(nestedSource, wrapper: destination) }, "never delete a source inside the installed app")
+        let nestedWrapper = downloaded.appendingPathComponent("Installed.app")
+        try fm.copyItem(at: destination, to: nestedWrapper)
+        rejects({ try Prepared.cleanupSource(downloaded, wrapper: nestedWrapper) }, "never delete a parent of the installed app")
+        try fm.removeItem(at: nestedWrapper)
+        rejects({ try Prepared.cleanupSource(downloaded, wrapper: source) }, "keep the source if the installed app is incomplete")
+        rejects({ try Prepared.cleanupSource(downloaded, wrapper: destination, remove: { _ in throw PatchError(message: "Deletion unavailable") }) }, "report deletion errors")
+        check(fm.fileExists(atPath: downloaded.path), "failed cleanup preserves the source")
+        let openedAsset = try FileHandle(forReadingFrom: downloaded.appendingPathComponent(Prepared.assetPath + "/sourcehansans.ttc"))
+        defer { try? openedAsset.close() }
+        try Prepared.cleanupSource(downloaded, wrapper: destination)
+        check(!fm.fileExists(atPath: downloaded.path), "successful installation removes the downloaded source")
+        var deletedFile = stat()
+        check(fstat(openedAsset.fileDescriptor, &deletedFile) == 0 && deletedFile.st_nlink == 0, "source files are unlinked rather than moved to Trash")
+        check(Prepared.isReady(destination), "cleanup preserves the installed game environment")
+        try Prepared.cleanupSource(downloaded, wrapper: destination)
+        check(Prepared.isReady(destination), "rerunning cleanup with a missing source preserves the installation")
         try Data().write(to: plugin.appendingPathComponent("NeopleCustomURLStarter.exe"))
         check(!Prepared.isReady(destination), "empty CustomURLStarter must retry despite success markers")
         try Data("exe".utf8).write(to: plugin.appendingPathComponent("NeopleCustomURLStarter.exe"))

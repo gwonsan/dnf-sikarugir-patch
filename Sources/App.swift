@@ -6,6 +6,10 @@ import AppKit
         if let command = args.first, command.hasPrefix("--") {
             do {
                 switch command {
+                case "--menu":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --menu 패치폴더") }
+                    try TerminalUI.run(root: URL(fileURLWithPath: args[1]).standardizedFileURL)
+
                 case "--prepare-ready", "--install-ready":
                     guard args.count > 1 else { throw PatchError(message: "동봉한 DNF.app 경로를 지정하세요.") }
                     let source = URL(fileURLWithPath: args[1]).standardizedFileURL
@@ -20,8 +24,8 @@ import AppKit
                         if command == "--create-wrapper" { try Bootstrap.createWrapper(wrapper) }
                         else { try Bootstrap.setup(wrapper, installer: args.count > 2 ? args[2] : nil) }
                     }
-                case "--install":
-                    let wrapper = try Installer.chooseWrapper(args.count > 1 ? args[1] : nil)
+                case "--install", "--install-select":
+                    let wrapper = try Installer.chooseWrapper(args.count > 1 ? args[1] : nil, forceSelection: command == "--install-select")
                     try PatchLock.withLock(directory: Installer.support) { try Installer.install(wrapper) }
                 case "--uninstall":
                     guard args.count == 1 || (args.count == 2 && args[1] == "--connection-only") else {

@@ -4,7 +4,7 @@ task_root="$(cd "$(dirname "$0")" && pwd)"
 task_binary="$task_root/DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
 if [[ ! -x "$task_binary" ]]; then
   /bin/bash "$task_root/scripts/build.sh"
-  task_binary="$task_root/dist/DNF-Sikarugir-Patch/DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
+  task_binary="$task_root/dist/DNF-Sikarugir-Patch-dev/설치 자료/DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
 fi
 echo "설치 명령 파일과 도우미의 다운로드 차단 표시 해제 중…"
 if ! /usr/bin/xattr -drs com.apple.quarantine "$0" "${task_binary%/Contents/MacOS/DNFWebLauncher}"; then

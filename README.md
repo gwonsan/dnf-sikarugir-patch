@@ -6,6 +6,31 @@
 
 *Apple Silicon Mac · macOS 26.6.2 · Sikarugir Wine 11에서 캡처한 캐릭터 선택 화면. 계정·캐릭터 이름과 수치는 가렸습니다.*
 
+## 개발 중: 하나의 던파 메뉴
+
+`feat/unified-tui`의 개발 빌드는 **`던파.command` 하나**로 시작합니다. 왼쪽에서 작업을 고르면 오른쪽에 설명과 설치 상태가 보입니다. 방향키와 Enter 또는 숫자로 설치·진단·복원을 실행하며, 좁은 창에서는 세로 메뉴로 전환됩니다. 필요한 세부 작업은 하위 메뉴에서 선택합니다. **아직 정식 배포본이 아니며, 아래 v0.3.3의 게임 플레이 검증이 이 개발 빌드의 검증을 뜻하지는 않습니다.**
+
+1. 개발 ZIP 전체를 압축 해제한 뒤 `던파.command`를 더블클릭합니다. `설치 자료` 폴더를 옮기거나 그 안의 앱을 직접 실행하지 마세요.
+2. 메뉴에서 필요한 작업을 선택하고 안내를 따릅니다. Rosetta가 필요하면 설치 작업을 선택했을 때 Apple 약관 동의를 안내합니다. 메뉴를 여는 것만으로 Rosetta를 설치하지 않습니다.
+3. 설치가 끝나면 Safari에서 던파 홈페이지에 로그인하고 **GAME START**를 누릅니다.
+
+```text
+DNF-Ready-dev/                       DNF-Sikarugir-Patch-dev/
+├── 던파.command                      ├── 던파.command
+├── 설치 자료/                        ├── 설치 자료/
+│   ├── DNF Web Launcher.app          │   └── DNF Web Launcher.app
+│   └── DNF.app                      └── README·라이선스·안내 자료
+└── README·라이선스·안내 자료
+```
+
+처음 macOS가 차단하면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**로 허용하거나, 직접 받은 파일을 신뢰하는 경우 압축 해제 폴더에서 `/bin/bash "./던파.command"`로 시작하세요. 진입 명령은 자기 자신과 동봉 도우미의 다운로드 격리 표시만 해제하며, 링크가 가리키는 외부 파일이나 macOS 전체 보안 설정은 바꾸지 않습니다. 도우미가 없으면 ZIP 전체를 다시 압축 해제하라는 오류를 표시합니다. 소스의 이전 명령 파일은 호환용으로 유지하지만 새 개발 ZIP에는 넣지 않습니다.
+
+## 배포된 v0.3.3 사용 안내
+
+**아래 `시작.command` 등 여러 명령 파일을 사용하는 설치 안내와 화면은 정식 배포된 v0.3.3 기준입니다. 개발 ZIP은 위의 `던파.command` 메뉴를 사용하세요.**
+
+
+
 **2026-10-16: v0.3.3의 정상 동작을 사용자가 직접 검증했습니다.**
 
 v0.3.0은 2026-10-13 기준 Apple Silicon Mac · macOS 26.6.2 · Sikarugir Wine 11 환경에서 홈페이지 실행과 한글 표시가 정상 작동하며, **준비된 DNF.app에서도 게임 전체 다운로드 완료와 정상 플레이를 사용자가 직접 확인했습니다.** 검증 범위는 [VALIDATION.md](https://github.com/gwonsan/dnf-sikarugir-patch/blob/main/docs/VALIDATION.md)에 기록합니다.
@@ -175,7 +200,7 @@ v0.3.1 이하에서 `이 Mac에 맞는 Wine prefix 초기화 중…`에 멈췄�
 
 ### 다음 버전 준비 중: 복구와 실행 안정성
 
-아래 기능은 `fix/installer-recovery` 브랜치의 변경 사항이며, 배포된 v0.3.3에는 아직 포함되지 않았습니다.
+아래 기능은 `fix/installer-recovery`에서 이어받은 개발 변경 사항이며, 배포된 v0.3.3에는 아직 포함되지 않았습니다. 새 개발 ZIP에서는 `던파.command`의 복원 메뉴를 사용합니다. 아래 직접 명령은 소스에 남겨 둔 호환용 명령 파일 기준입니다.
 
 - 설치된 DNF.app을 삭제하거나 이동해 기존 경로에서 찾을 수 없으면, `복원.command`가 폰트 복원을 건너뛰고 남은 연결과 설치 기록을 정리합니다. 기존 설정은 `~/Library/Application Support/DNF Sikarugir Patch/Recovery/`에 별도 백업하며, 이후 새 경로에 설치할 수 있습니다. 이동한 앱의 폰트까지 복원하려면 먼저 앱을 원래 위치로 돌려놓고 일반 복원을 실행하세요.
 - 앱은 남아 있지만 Wine이 손상되어 일반 복원이 실패하면, 아래 명령으로 **연결과 설치 기록만** 정리할 수 있습니다. 폰트 설정은 복원하지 않으며 원래 백업을 `Recovery/`에 보관합니다. 게임 파일은 삭제하지 않습니다. 터미널에서 패치 폴더로 이동한 뒤 실행하세요.
@@ -191,7 +216,7 @@ v0.3.1 이하에서 `이 Mac에 맞는 Wine prefix 초기화 중…`에 멈췄�
 
 Intel용 패치 실행 파일도 포함하지만 Intel Mac 실기기와 두 번째 Mac에서의 전체 설치는 아직 검증하지 않았습니다. 다운로드 완료와 정상 플레이 확인은 위 환경 기준입니다.
 
-## 소스에서 빌드
+## 소스에서 개발 빌드
 
 Xcode Command Line Tools가 설치된 Mac에서 실행합니다.
 
@@ -200,7 +225,7 @@ bash scripts/test.sh
 bash scripts/build.sh
 ```
 
-결과는 arm64와 x86_64를 포함하는 `dist/DNF-Sikarugir-Patch-v0.3.3.zip`입니다. 준비된 앱 패키지는 검증된 공식 템플릿과 폰트, 설치된 공식 플러그인 파일 두 개를 지정해 별도로 만듭니다.
+결과는 arm64와 x86_64를 포함하는 `dist/DNF-Sikarugir-Patch-dev.zip`과 `dist/DNF-Sikarugir-Patch-dev/`입니다. 매번 빈 임시 폴더에서 패키지를 구성해 이전 명령 파일이 섞이지 않게 하며, 기존 v0.3.3 배포 파일은 덮어쓰지 않습니다. 준비된 앱 패키지는 검증된 공식 템플릿과 폰트, 설치된 공식 플러그인 파일 두 개를 지정해 별도로 만듭니다.
 
 ```sh
 python3 scripts/package-ready.py \
@@ -208,8 +233,8 @@ python3 scripts/package-ready.py \
   --font /path/to/sourcehansans.ttc \
   --plugin-directory /path/to/NeoplePlugin \
   --font-license /path/to/SourceHanSans-OFL.txt \
-  --destination dist/DNF-Ready-v0.3.3/DNF.app
+  --destination build/prepared/DNF.app
 bash scripts/build-ready.sh
 ```
 
-입력 파일의 고정된 SHA-256을 확인하고, 사용한 앱의 Wine 환경을 복사하지 않습니다. 결과는 `dist/DNF-Ready-v0.3.3.zip`입니다. 소스 저장소에는 게임·Wine 바이너리, 사용자 레지스트리·백업과 인증 로그를 넣지 않습니다. 패치 자체 코드는 MIT이며 동봉한 구성 요소에는 각 배포처의 라이선스가 적용됩니다.
+기존에 준비한 앱을 입력하려면 `bash scripts/build-ready.sh "/path/to/DNF.app"`로 지정합니다. 입력 파일의 고정된 SHA-256을 확인하고, 사용한 앱의 Wine 환경을 복사하지 않습니다. 결과는 `dist/DNF-Ready-dev.zip`과 `dist/DNF-Ready-dev/`입니다. 소스 저장소에는 게임·Wine 바이너리, 사용자 레지스트리·백업과 인증 로그를 넣지 않습니다. 패치 자체 코드는 MIT이며 동봉한 구성 요소에는 각 배포처의 라이선스가 적용됩니다.

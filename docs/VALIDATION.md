@@ -1,5 +1,17 @@
 # Validation
 
+## Unified terminal menu — unreleased (2026-10-18)
+
+- Local branch `feat/unified-tui`, based on the unreleased installer-recovery branch. The released v0.3.3 is unchanged; its gameplay confirmation does not validate this development build.
+- One `던파.command` opens a gold-accented left/right menu for install/reapply, diagnostics, restoration and the website. Advanced options explicitly select an existing app, create a fresh wrapper, or reset connection records. Narrow terminals stack the menu; keyboard navigation, numeric selection, plain terminals and `NO_COLOR` are supported.
+- Nine Swift suites and 21 Python tests passed. Nine of the Python tests drive a real pseudo-terminal with a harmless child executable and synthetic installation state: arrow/numeric input, restoration confirmation, failure/retry, log redaction, resize, plain mode, connection-only restoration, Q during work, SIGTERM and terminal cleanup. macOS's kernel-managed `PENDIN` marker is excluded from terminal-mode equality; all other attributes must match.
+- Regression tests caught the initial signal-handler startup crash and verified its fix. Review also corrected explicit app selection, compatibility command build paths and reapplying a restored prepared app after its downloaded source was removed. The restored-app routing test failed before the correction, then passed.
+- All installation mutations, URL registration and Wine launch boundaries in UI tests use fixtures. A clean extracted production package also opened the real menu and exited with Q; no install action was selected. Existing game files and installation state were not changed.
+- Both development ZIPs passed archive integrity and the single-entry layout check. The extracted helper passed strict ad-hoc signature verification and contains both arm64 and x86_64. Prepared assets passed pinned checksums/license checks and contain no initialized prefix, Wine engine or launcher logs. Ad-hoc verification is not Developer ID signing or Apple notarization.
+- `DNF-Sikarugir-Patch-dev.zip`: 2,412,163 bytes; SHA-256 `17c521aa984c1f15e3ec4675fcd5297a79d65b7c0bb15937c9b0930f3467cec9`.
+- `DNF-Ready-dev.zip`: 260,439,655 bytes; SHA-256 `e4a3ae968729cb1a199ca37089d61cc849bac09ea8535348fcb51251380a4728`.
+- This branch has not been pushed or released. Full first installation through the new menu, missing-Rosetta agreement, native app picker, Safari GAME START and gameplay still require UTM/real-Mac verification. Intel hardware remains unverified.
+
 ## Installer recovery and bridge coordination — unreleased (2026-10-16)
 
 - Local branch `fix/installer-recovery`; these changes are not included in v0.3.3. The user's existing v0.3.3 gameplay confirmation does not validate this branch.

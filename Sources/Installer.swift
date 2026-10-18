@@ -79,12 +79,12 @@ enum Installer {
         return try run(executable, args, environment: process.environment)
     }
 
-    static func chooseWrapper(_ argument: String?) throws -> URL {
+    static func chooseWrapper(_ argument: String?, forceSelection: Bool = false) throws -> URL {
         if let argument { return URL(fileURLWithPath: argument).standardizedFileURL }
         let candidates = ["Applications/Sikarugir/DNF.app", "Applications/DNF.app"].map {
             fm.homeDirectoryForCurrentUser.appendingPathComponent($0)
         }.filter { makeLaunchProcess(request: "neople://patch-check", wrapper: $0) != nil }
-        if candidates.count == 1 { return candidates[0] }
+        if !forceSelection && candidates.count == 1 { return candidates[0] }
         NSApplication.shared.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSOpenPanel()

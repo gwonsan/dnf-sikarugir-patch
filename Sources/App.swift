@@ -6,6 +6,9 @@ import AppKit
         if let command = args.first, command.hasPrefix("--") {
             do {
                 switch command {
+                case "--close-terminal":
+                    guard args.count == 2 else { return }
+                    try TerminalSession.closeCompletedWindow(tty: args[1])
                 case "--menu":
                     guard args.count == 2 else { throw PatchError(message: "사용법: --menu 패치폴더") }
                     try TerminalUI.run(root: URL(fileURLWithPath: args[1]).standardizedFileURL)

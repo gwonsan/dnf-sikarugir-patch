@@ -1,11 +1,25 @@
 #!/bin/bash
 set -u
 
-task_finish() {
-  local task_status="$1"
+# Close only this command's completed Terminal window; preserve active shells.
+task_terminal_helper=""
+task_terminal_finish() {
+  local task_status=$?
+  trap - EXIT
   if [[ "$task_status" -ne 0 && -t 0 ]]; then
     read -r -p "Enter를 누르면 종료합니다." || true
   fi
+  if [[ "${TERM_PROGRAM:-}" == "Apple_Terminal" && -t 0 && -x "$task_terminal_helper" ]]; then
+    local task_tty
+    task_tty="$(/usr/bin/tty)"
+    "$task_terminal_helper" --close-terminal "$task_tty" </dev/null >/dev/null 2>&1 &
+  fi
+  exit "$task_status"
+}
+trap task_terminal_finish EXIT
+
+task_finish() {
+  local task_status="$1"
   exit "$task_status"
 }
 
@@ -31,6 +45,7 @@ if ! /usr/bin/xattr -drs com.apple.quarantine "$0" "$task_helper"; then
   task_finish 1
 fi
 
+task_terminal_helper="$task_binary"
 "$task_binary" --menu "$task_root"
 task_status=$?
 if [[ "$task_status" -ne 0 ]]; then

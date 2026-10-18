@@ -38,4 +38,8 @@ for task_test in TerminalTests TerminalHarness; do
     -framework AppKit -framework CoreServices -o "$task_root/build/$task_test"
 done
 "$task_root/build/TerminalTests"
+xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
+  "$task_root/Sources/TerminalSession.swift" "$task_root/Tests/TerminalSessionTests.swift" \
+  -framework AppKit -o "$task_root/build/TerminalSessionTests"
+"$task_root/build/TerminalSessionTests"
 python3 -m unittest discover -s "$task_root/Tests" -p 'test_*.py'

@@ -1,5 +1,16 @@
 # Validation
 
+## Menu highlight and terminal completion — unreleased follow-up (2026-10-18)
+
+- Selection color now resets before the split divider. A real PTY test first reproduced the gold background leaking into the detail pane, then passed with the correction. The fixture explicitly enables color so an inherited `NO_COLOR` cannot conceal this regression.
+- All six command entry points request cleanup through a detached helper after exit. Successful installation/restoration and TUI Quit no longer pause for Enter. Errors keep their exit status and wait for acknowledgment; successful standalone diagnosis remains readable until Enter.
+- The watcher checks the exact TTY and only closes a single-tab Terminal window when it is not busy and contains no processes. Existing interactive shells, multiple-tab windows and other terminal apps remain open. No global Terminal setting is changed. Denied automation permission leaves the window open.
+- Ten Swift suites and 26 Python tests passed. Entry tests substitute the app and Rosetta prerequisite boundaries, so they cannot install Rosetta, run Wine or modify game state. Old entry scripts failed the cleanup regression fixture before the change. A compiled AppleScript syntax check and negative-target tests do not execute a live window close.
+- Both development ZIPs rebuilt successfully; archive integrity, one root entry command, extracted strict ad-hoc signature and arm64/x86_64 checks passed. The compiled no-op close command for a non-Apple terminal also exited successfully.
+- Actual Terminal window disappearance remains unverified: the computer-control tool disallowed Terminal access. The watcher logic and exit dispatch are verified separately; test Finder double-click → TUI Q and legacy command completion on a Mac before release. No GitHub publication or game installation occurred.
+- `DNF-Sikarugir-Patch-dev.zip`: 2,417,080 bytes; SHA-256 `d18aee9feeb4e1afd61946831c68cfc0c707f73bd886876a40183e817c862095`.
+- `DNF-Ready-dev.zip`: 260,444,572 bytes; SHA-256 `b6df620aa43d5776af96afaad745537b10e014215993de68f8d638cbd309ea08`.
+
 ## Unified terminal menu — unreleased (2026-10-18)
 
 - Local branch `feat/unified-tui`, based on the unreleased installer-recovery branch. The released v0.3.3 is unchanged; its gameplay confirmation does not validate this development build.

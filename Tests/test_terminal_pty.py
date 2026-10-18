@@ -26,6 +26,7 @@ class Session:
         fcntl.ioctl(self.slave, termios.TIOCSWINSZ, struct.pack('HHHH', height, width, 0, 0))
         self.original = termios.tcgetattr(self.slave)
         env = dict(os.environ, TERM='xterm-256color', LANG='en_US.UTF-8', TUI_TEST_ARGS=str(self.marker))
+        env.pop("NO_COLOR", None)
         env.update(extra or {})
         self.process = subprocess.Popen([str(HARNESS), str(helper)], stdin=self.slave, stdout=self.slave, stderr=self.slave, env=env)
         self.output = b''
@@ -98,6 +99,16 @@ class TerminalPTYTests(unittest.TestCase):
         s.send('q')
         output = s.finish()
         self.assertIn(b'\x1b[?25h\x1b[?1049l', output)
+
+    def test_selected_background_stops_before_right_pane(self):
+        s = self.start()
+        selected = next(line for line in s.output.split(b'\r\n') if '› 1'.encode() in line)
+        left, right = selected.split(' │ '.encode(), 1)
+        self.assertIn(b'\x1b[38;5;223;48;5;237m', left)
+        self.assertIn(b'\x1b[0m', left, 'selection must reset before the divider')
+        self.assertNotIn(b'48;5;', right)
+        s.send('q')
+        s.finish()
 
     def test_restore_default_cancel_and_explicit_confirm(self):
         s = self.start()

@@ -298,7 +298,11 @@ private final class MenuTerminal {
             let selected = text.hasPrefix("›")
             let gold = text.hasPrefix("DNF") || text.hasPrefix("━") || selected
             let escape = color ? (selected ? "\u{1b}[38;5;223;48;5;237m" : gold ? "\u{1b}[33m" : "") : ""
-            screen += "\u{1b}[K  " + escape + text + (color ? "\u{1b}[0m" : "") + "\r\n"
+            if color && selected, let divider = text.range(of: " │ ") {
+                screen += "\u{1b}[K  " + escape + text[..<divider.lowerBound] + "\u{1b}[0m" + text[divider.lowerBound...] + "\r\n"
+            } else {
+                screen += "\u{1b}[K  " + escape + text + (color ? "\u{1b}[0m" : "") + "\r\n"
+            }
         }
         write(screen + "\u{1b}[J")
     }

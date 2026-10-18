@@ -14,7 +14,7 @@ for task_arch in arm64 x86_64; do
   xcrun swiftc -O -target "$task_arch-apple-macos14.6" -module-cache-path "$task_build/module-cache" \
     "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
     "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
-    "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Sources/Prepared.swift" "$task_root/Sources/Bridge.swift" "$task_root/Sources/TerminalUI.swift" "$task_root/Sources/App.swift" \
+    "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Sources/Prepared.swift" "$task_root/Sources/Bridge.swift" "$task_root/Sources/TerminalUI.swift" "$task_root/Sources/TerminalSession.swift" "$task_root/Sources/App.swift" \
     -framework AppKit -framework CoreServices -o "$task_build/launcher-$task_arch"
 done
 xcrun lipo -create "$task_build/launcher-arm64" "$task_build/launcher-x86_64" -output "$task_app/Contents/MacOS/DNFWebLauncher"

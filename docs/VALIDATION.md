@@ -1,5 +1,16 @@
 # Validation
 
+## Interactive Rosetta installation — unreleased fix (2026-10-27)
+
+- Live diagnosis on the test Mac found `softwareupdate --install-rosetta` stopped in state `T`. Its process group differed from the terminal's foreground group; the TUI parent remained in the foreground. The Foundation `Process` launch path left the interactive agreement unable to read the terminal.
+- The interactive runner now starts the child suspended in its own process group, hands it the foreground terminal, resets child signal dispositions/mask, then resumes it. Input ownership and the parent's signal mask are restored on completion and failure before the TUI restores its display. Apple agreement acceptance remains manual; no automatic agreement flag was added.
+- Three real controlling-PTY regression tests failed against the extracted old launch path, covering input, rejection and Ctrl-C. The corrected runner passed these plus Ctrl-Z cancellation, noninteractive rejection, owned descendant cleanup and input through Apple's `/bin/sh`. These run harmless fixture programs, never softwareupdate, Rosetta or Wine.
+- Review reproduced a forked helper surviving stop cancellation. A separate regression first failed, then passed after exceptional cleanup was changed to kill the owned process group while its leader is still unreaped.
+- The full Swift suite and 32 Python tests passed after the final production change. An additional Apple platform executable case was then added; all 33 Python tests passed together. Both universal development ZIPs passed archive integrity, single-entry layout, extracted strict ad-hoc signature and arm64/x86_64 checks. Prepared assets remain uninitialized and passed pinned-file/license validation.
+- Actual Rosetta installation completion through the updated TUI still needs user verification. The stopped old test instance was not resumed or supplied agreement input. The installed game, URL handler and real patch state were not modified. The fix is local to `feat/unified-tui`; it has not been published to GitHub.
+- `DNF-Sikarugir-Patch-dev.zip`: 2,419,371 bytes; SHA-256 `054066b21a9cd28ce266f3fa2ea2887b55899f0de11277f2b4b64c61314b0598`.
+- `DNF-Ready-dev.zip`: 260,446,863 bytes; SHA-256 `5ae4147f43e24b9e887c9f49d65e1b9d8a864d35f7c91bc1b953726aa228bad0`.
+
 ## Menu highlight and terminal completion — unreleased follow-up (2026-10-18)
 
 - Selection color now resets before the split divider. A real PTY test first reproduced the gold background leaking into the detail pane, then passed with the correction. The fixture explicitly enables color so an inherited `NO_COLOR` cannot conceal this regression.

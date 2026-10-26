@@ -420,12 +420,9 @@ final class TerminalUI {
                 if action.installs && !current.rosetta {
                     terminal.suspend()
                     print("Rosetta가 필요합니다. 다음 Apple 약관을 직접 확인하고 동의하면 설치됩니다.")
-                    let rosetta = Process()
-                    rosetta.executableURL = URL(fileURLWithPath: "/usr/sbin/softwareupdate")
-                    rosetta.arguments = ["--install-rosetta"]
-                    try rosetta.run(); rosetta.waitUntilExit()
+                    let status = try InteractiveCommand.run(URL(fileURLWithPath: "/usr/sbin/softwareupdate"), arguments: ["--install-rosetta"])
                     terminal.resume()
-                    guard rosetta.terminationStatus == 0 else { throw PatchError(message: "Rosetta 설치가 완료되지 않았습니다.") }
+                    guard status == 0 else { throw PatchError(message: "Rosetta 설치가 완료되지 않았습니다.") }
                 }
                 let job = try MenuJob(helper: helper, arguments: arguments)
                 var details = false

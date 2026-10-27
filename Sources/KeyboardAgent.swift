@@ -66,6 +66,7 @@ final class KeyboardAgent {
     private var attestationInFlight = false
     private var gamePID: pid_t = 0
     private var tap: CFMachPort?
+    private var captureRequested = false
     private var hid: IOHIDManager?
     private var capsDevices = Set<UInt64>()
     private var sourceGuard = KeyInputSourceGuard(source:nil)
@@ -112,7 +113,7 @@ final class KeyboardAgent {
         self.tap = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: false)
+        setCaptureEnabled(false)
         sourceObserver = DistributedNotificationCenter.default().addObserver(forName: Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String), object: nil, queue: .main) { [weak self] _ in self?.inputSourceChanged() }
         let timer = Timer(timeInterval: 0.4, repeats: true) { [weak self] _ in self?.refresh() }
         RunLoop.main.add(timer, forMode: .common)
@@ -209,10 +210,16 @@ final class KeyboardAgent {
             stopMessage = "Caps Lock 물리 입력을 읽지 못했습니다. 입력 모니터링 권한을 확인해 주세요."
             active = false; return
         }
-        if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+        setCaptureEnabled(true)
+    }
+    private func setCaptureEnabled(_ enabled: Bool) {
+        // Disabling our own tap also queues tapDisabledByUserInput on macOS.
+        // Record intent before the API call so that pause notification cannot stop the agent.
+        captureRequested = enabled
+        if let tap { CGEvent.tapEnable(tap:tap,enable:enabled) }
     }
     private func leaveTarget() {
-        if let tap { CGEvent.tapEnable(tap: tap, enable: false) }
+        setCaptureEnabled(false)
         if let hid {
             IOHIDManagerUnscheduleFromRunLoop(hid, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
             IOHIDManagerClose(hid, IOOptionBits(kIOHIDOptionsTypeNone)); self.hid = nil
@@ -255,6 +262,7 @@ final class KeyboardAgent {
     }
     private func filter(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            guard KeyCaptureLifecycle.shouldStop(requested:captureRequested, tapEnabled:tap.map { CGEvent.tapIsEnabled(tap:$0) } ?? false) else { return Unmanaged.passUnretained(event) }
             stopMessage = "입력 캡처가 중단되어 안전하게 보정을 종료했습니다."
             leaveTarget(); active = false; return Unmanaged.passUnretained(event)
         }

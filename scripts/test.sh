@@ -58,3 +58,7 @@ xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
   "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" "$task_root/Tests/BundleMetadataTests.swift" \
   -framework AppKit -framework CoreServices -o "$task_root/build/BundleMetadataTests"
 "$task_root/build/BundleMetadataTests"
+
+xcrun swiftc -module-cache-path "$task_root/build/module-cache" "$task_root/Sources/KeyMapping.swift" \
+  "$task_root/Tests/EventTapLifecycleTests.swift" -framework AppKit -o "$task_root/build/EventTapLifecycleTests"
+"$task_root/build/EventTapLifecycleTests"

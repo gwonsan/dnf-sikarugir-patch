@@ -253,3 +253,8 @@ struct KeyInputSourceGuard {
         source = id; previous = nil; changedAt = -Double.infinity; guardUntil = -Double.infinity
     }
 }
+
+/// Delayed self-pause notifications must not stop capture that has already resumed.
+enum KeyCaptureLifecycle {
+    static func shouldStop(requested: Bool, tapEnabled: Bool) -> Bool { requested && !tapEnabled }
+}

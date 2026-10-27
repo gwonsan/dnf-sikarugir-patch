@@ -192,9 +192,7 @@ enum Installer {
         let staged = destination.deletingLastPathComponent().appendingPathComponent("DNF-patch-\(UUID().uuidString).app")
         try fm.copyItem(at: source, to: staged)
         defer { try? fm.removeItem(at: staged) }
-        guard try run(URL(fileURLWithPath: "/usr/bin/codesign"), ["--verify", "--deep", staged.path]) == 0 else {
-            throw PatchError(message: "패치 앱 서명 확인에 실패했습니다.")
-        }
+        try verifyHelperBundle(staged)
         if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
         try fm.moveItem(at: staged, to: destination)
         guard LSRegisterURL(destination as CFURL, true) == noErr,
@@ -205,6 +203,22 @@ enum Installer {
         state.installed = true
         try save(state)
         print("설치 완료. 다운로드가 끝나면 런처를 종료하고 던파 홈페이지에서 GAME START를 눌러 주세요.")
+    }
+
+    static func verifyHelperBundle(_ staged: URL) throws {
+        guard staged.pathExtension == "app", (try? fm.destinationOfSymbolicLink(atPath:staged.path)) == nil else {
+            throw PatchError(message:"패치 도우미 복사본 경로가 올바르지 않습니다.")
+        }
+        // File providers can attach empty FinderInfo to copied app directories.
+        // Remove only this inert metadata, from this exact copy, without following links.
+        for attribute in ["com.apple.FinderInfo", "com.apple.ResourceFork"] {
+            guard try run(URL(fileURLWithPath:"/usr/bin/xattr"),["-drs",attribute,staged.path]) == 0 else {
+                throw PatchError(message:"패치 도우미의 Finder 메타데이터를 정리하지 못했습니다.")
+            }
+        }
+        guard try run(URL(fileURLWithPath:"/usr/bin/codesign"),["--verify","--deep","--strict",staged.path]) == 0 else {
+            throw PatchError(message:"패치 앱 서명 확인에 실패했습니다.")
+        }
     }
 
     static func uninstall(connectionOnly: Bool = false) throws {

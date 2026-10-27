@@ -52,3 +52,9 @@ python3 -m unittest discover -s "$task_root/Tests" -p 'test_*.py'
 xcrun swiftc -module-cache-path "$task_root/build/module-cache" "$task_root/Sources/KeyMapping.swift" \
   "$task_root/Tests/KeyMappingTests.swift" -o "$task_root/build/KeyMappingTests"
 "$task_root/build/KeyMappingTests"
+
+xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
+  "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
+  "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" "$task_root/Tests/BundleMetadataTests.swift" \
+  -framework AppKit -framework CoreServices -o "$task_root/build/BundleMetadataTests"
+"$task_root/build/BundleMetadataTests"

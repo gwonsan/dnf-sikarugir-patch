@@ -8,6 +8,8 @@ func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
 @main struct TerminalTests {
     static func main() throws {
         setlocale(LC_CTYPE, "en_US.UTF-8")
+        expect(TerminalUI.normal.contains(.keyboard), "key mapping is reachable in normal menu")
+        expect(TerminalKey.decode([115]) == .save && TerminalKey.decode([100]) == .delete, "keyboard editor shortcuts decode")
         let root = URL(fileURLWithPath: "/tmp/Package With Spaces")
         var snapshot = MenuSnapshot()
         snapshot.readySource = true

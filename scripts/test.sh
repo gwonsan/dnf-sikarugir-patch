@@ -14,28 +14,28 @@ xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
   "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
   "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
   "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Tests/BootstrapTests.swift" \
-  -framework AppKit -framework CoreServices -o "$task_root/build/BootstrapTests"
+  -framework AppKit -framework CoreServices -framework Carbon -framework IOKit -o "$task_root/build/BootstrapTests"
 "$task_root/build/BootstrapTests"
 xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
   "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
   "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
   "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Sources/Prepared.swift" "$task_root/Tests/PreparedTests.swift" \
-  -framework AppKit -framework CoreServices -o "$task_root/build/PreparedTests"
+  -framework AppKit -framework CoreServices -framework Carbon -framework IOKit -o "$task_root/build/PreparedTests"
 "$task_root/build/PreparedTests"
 for task_test in Recovery Bridge BridgeLifecycle; do
   xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
     "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
     "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
-    "$task_root/Sources/Bridge.swift" "$task_root/Tests/${task_test}Tests.swift" \
-    -framework AppKit -framework CoreServices -o "$task_root/build/${task_test}Tests"
+    "$task_root/Sources/KeyMapping.swift" "$task_root/Sources/KeyboardAgent.swift" "$task_root/Sources/Bridge.swift" "$task_root/Tests/${task_test}Tests.swift" \
+    -framework AppKit -framework CoreServices -framework Carbon -framework IOKit -o "$task_root/build/${task_test}Tests"
   "$task_root/build/${task_test}Tests"
 done
 for task_test in TerminalTests TerminalHarness; do
   xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
     "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
     "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
-    "$task_root/Sources/TerminalUI.swift" "$task_root/Sources/InteractiveCommand.swift" "$task_root/Tests/$task_test.swift" \
-    -framework AppKit -framework CoreServices -o "$task_root/build/$task_test"
+    "$task_root/Sources/KeyMapping.swift" "$task_root/Sources/KeyboardAgent.swift" "$task_root/Sources/KeyboardUI.swift" "$task_root/Sources/TerminalUI.swift" "$task_root/Sources/InteractiveCommand.swift" "$task_root/Tests/$task_test.swift" \
+    -framework AppKit -framework CoreServices -framework Carbon -framework IOKit -o "$task_root/build/$task_test"
 done
 "$task_root/build/TerminalTests"
 xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
@@ -46,5 +46,9 @@ xcrun swiftc -module-cache-path "$task_root/build/module-cache" \
   "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
   "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
   "$task_root/Sources/InteractiveCommand.swift" "$task_root/Tests/InteractiveHarness.swift" \
-  -framework AppKit -framework CoreServices -o "$task_root/build/InteractiveHarness"
+  -framework AppKit -framework CoreServices -framework Carbon -framework IOKit -o "$task_root/build/InteractiveHarness"
 python3 -m unittest discover -s "$task_root/Tests" -p 'test_*.py'
+
+xcrun swiftc -module-cache-path "$task_root/build/module-cache" "$task_root/Sources/KeyMapping.swift" \
+  "$task_root/Tests/KeyMappingTests.swift" -o "$task_root/build/KeyMappingTests"
+"$task_root/build/KeyMappingTests"

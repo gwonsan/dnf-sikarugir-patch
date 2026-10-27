@@ -13,7 +13,8 @@ import Foundation
         do {
             try TerminalUI(root: URL(fileURLWithPath: "/tmp/Test Package"),
                            helper: URL(fileURLWithPath: args[1]),
-                           snapshot: { snapshot }, openHomepage: { true }).run()
+                           snapshot: { snapshot }, openHomepage: { true },
+                           keyboardStore: KeyProfileStore(directory:URL(fileURLWithPath:args[1]).deletingLastPathComponent().appendingPathComponent("key-profiles")), activateKeyboard: { _ in }).run()
         } catch {
             fputs("\(error.localizedDescription)\n", stderr)
             exit(1)

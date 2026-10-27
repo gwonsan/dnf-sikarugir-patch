@@ -1,5 +1,6 @@
 """Exercise the real UI with a harmless helper and synthetic installation state."""
 import fcntl
+import json
 import os
 from pathlib import Path
 import pty
@@ -61,7 +62,10 @@ class Session:
         os.write(self.master, text.encode())
 
     def finish(self):
-        self.process.wait(timeout=8)
+        deadline = time.monotonic() + 8
+        while self.process.poll() is None and time.monotonic() < deadline:
+            self.pump(.05)
+        self.process.wait(timeout=.5)
         self.pump(.1)
         assert self.process.returncode == 0, self.output.decode(errors='replace')
         restored = termios.tcgetattr(self.slave)
@@ -88,6 +92,47 @@ class TerminalPTYTests(unittest.TestCase):
         session = Session(**kwargs)
         self.addCleanup(session.close)
         return session
+
+    def test_keyboard_preset_persists_only_after_save(self):
+        s = self.start()
+        s.send('5')
+        s.until('DNF   /   키보드 매핑')
+        s.send('r')
+        s.until('한/영·Caps Lock 프리셋 불러옴')
+        self.assertFalse(list((s.root / 'key-profiles').glob('*.json')))
+        s.send('s')
+        s.until('키 매핑 저장됨')
+        profile_file = next((s.root / 'key-profiles').glob('*.json'))
+        data = json.loads(profile_file.read_text())
+        self.assertFalse(data['enabled'])
+        self.assertEqual({b['source'] for b in data['bindings']}, {57, 61})
+        self.assertEqual(next(b['target'] for b in data['bindings'] if b['source'] == 57), {'key': {'_0': 57}})
+        s.output = b''
+        s.send('1s')
+        s.until('키 매핑 저장됨')
+        self.assertTrue(json.loads(profile_file.read_text())['enabled'])
+        s.send('\x1bq')
+        s.finish()
+        self.assertFalse(s.marker.exists(), 'editing never runs the Wine/install helper')
+
+    def test_keyboard_custom_mapping_and_discard(self):
+        s = self.start()
+        s.send('5a')
+        s.until('바꿀 입력 키')
+        s.output = b''
+        s.send('\r')  # left Command
+        s.until('게임에 보낼 키')
+        s.send('\x1b[B' * 4 + '\r')  # left Control
+        s.until('매핑 추가됨')
+        s.send('s')
+        s.until('키 매핑 저장됨')
+        file = next((s.root / 'key-profiles').glob('*.json'))
+        self.assertEqual(json.loads(file.read_text())['bindings'], [{'source': 55, 'target': {'key': {'_0': 59}}}])
+        s.send('d')
+        s.until('매핑 삭제됨')
+        s.send('\x1bq')
+        s.finish()
+        self.assertEqual(len(json.loads(file.read_text())['bindings']), 1, 'Escape discards unsaved removal')
 
     def test_arrow_diagnose_and_quit_restores_terminal(self):
         s = self.start()

@@ -96,6 +96,8 @@ final class BridgeDelegate: NSObject, NSApplicationDelegate {
                         self?.scheduleIdleExit()
                     }
                 }
+                // Keyboard capture never blocks website launch if permission or profile is unavailable.
+                try? KeyboardService.startIfEnabled(wrapper: URL(fileURLWithPath:state.wrapperPath))
                 try process.run()
                 children.append(process)
             } catch PatchLock.Failure.busy {

@@ -6,6 +6,17 @@ import AppKit
         if let command = args.first, command.hasPrefix("--") {
             do {
                 switch command {
+                case "--keyboard-agent":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --keyboard-agent DNF.app") }
+                    let app = NSApplication.shared; app.setActivationPolicy(.accessory); app.finishLaunching()
+                    try KeyboardAgent(wrapper: URL(fileURLWithPath:args[1])).run()
+                case "--keyboard-permissions":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --keyboard-permissions DNF.app") }
+                    let app = NSApplication.shared; app.setActivationPolicy(.accessory); app.finishLaunching()
+                    KeyboardService.configurePermissions(wrapper:URL(fileURLWithPath:args[1]))
+                case "--keyboard-status":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --keyboard-status DNF.app") }
+                    print(KeyboardService.status(wrapper:URL(fileURLWithPath:args[1])))
                 case "--close-terminal":
                     guard args.count == 2 else { return }
                     try TerminalSession.closeCompletedWindow(tty: args[1])
@@ -34,7 +45,12 @@ import AppKit
                     guard args.count == 1 || (args.count == 2 && args[1] == "--connection-only") else {
                         throw PatchError(message: "사용법: --uninstall [--connection-only]")
                     }
+                    let keyboardWrapper = try? Installer.readState().wrapperPath
                     try PatchLock.withLock(directory: Installer.support) { try Installer.uninstall(connectionOnly: args.count == 2) }
+                    if let keyboardWrapper {
+                        var profile = try KeyboardService.store.load(wrapper: URL(fileURLWithPath:keyboardWrapper))
+                        profile.enabled = false; try KeyboardService.store.save(profile)
+                    }
                 case "--diagnose":
                     let wrapper = args.count > 1 ? URL(fileURLWithPath: args[1]) : URL(fileURLWithPath: try Installer.readState().wrapperPath)
                     try Installer.diagnose(wrapper)

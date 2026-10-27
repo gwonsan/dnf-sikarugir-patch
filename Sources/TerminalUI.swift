@@ -53,13 +53,14 @@ struct MenuSnapshot {
 }
 
 enum MenuAction: String {
-    case install, diagnose, restore, homepage, selectApp, setup, connectionOnly
+    case install, diagnose, restore, homepage, keyboard, selectApp, setup, connectionOnly
     var title: String {
         switch self {
         case .install: return "설치 / 패치 다시 적용"
         case .diagnose: return "실행 문제 진단"
         case .restore: return "패치 복원"
         case .homepage: return "던파 홈페이지 열기"
+        case .keyboard: return "키보드 매핑"
         case .selectApp: return "기존 DNF.app 선택"
         case .setup: return "빈 앱부터 새로 설치"
         case .connectionOnly: return "연결과 설치 기록만 정리"
@@ -71,6 +72,7 @@ enum MenuAction: String {
         case .diagnose: return "Wine, 한글 설정과 웹 연결을 확인합니다."
         case .restore: return "원래 폰트 설정과 웹 연결을 복원합니다."
         case .homepage: return "로그인 후 GAME START를 눌러 주세요."
+        case .keyboard: return "던파 안에서 사용할 키를 자유롭게 지정합니다."
         case .selectApp: return "직접 선택한 기존 앱에 패치를 적용합니다."
         case .setup: return "공식 자료로 앱을 만들고 플러그인을 설치합니다."
         case .connectionOnly: return "폰트 복원 없이 기록을 백업하고 정리합니다."
@@ -97,7 +99,7 @@ enum MenuAction: String {
         case .connectionOnly: return ["--uninstall", "--connection-only"]
         case .selectApp: return ["--install-select"]
         case .setup: return ["--setup"]
-        case .homepage: return []
+        case .homepage, .keyboard: return []
         }
     }
 }
@@ -133,7 +135,7 @@ enum TerminalText {
 }
 
 enum TerminalKey: Equatable {
-    case up, down, enter, back, quit, advanced, logs, retry, number(Int), other
+    case up, down, enter, back, quit, advanced, logs, retry, save, delete, permissions, nextPage, previousPage, number(Int), other
     static func decode(_ bytes: [UInt8]) -> TerminalKey {
         if bytes == [27,91,65] || bytes == [27,79,65] { return .up }
         if bytes == [27,91,66] || bytes == [27,79,66] { return .down }
@@ -145,6 +147,13 @@ enum TerminalKey: Equatable {
         case 65,97: return .advanced
         case 76,108: return .logs
         case 82,114: return .retry
+        case 83,115: return .save
+        case 68,100: return .delete
+        case 80,112: return .permissions
+        case 74,106: return .down
+        case 75,107: return .up
+        case 93: return .nextPage
+        case 91: return .previousPage
         case 49...57: return .number(Int(first - 49))
         default: return .other
         }
@@ -201,7 +210,7 @@ private final class MenuJob {
     deinit { try? output.fileHandleForReading.close(); try? output.fileHandleForWriting.close() }
 }
 
-private final class MenuTerminal {
+final class MenuTerminal {
     private var original = termios()
     private var active = false
     private var queued: [UInt8] = []
@@ -318,11 +327,15 @@ final class TerminalUI {
     let helper: URL
     let snapshot: () -> MenuSnapshot
     let openHomepage: () -> Bool
-    static let normal: [MenuAction] = [.install, .diagnose, .restore, .homepage]
+    let keyboardStore: KeyProfileStore
+    let activateKeyboard: (URL) throws -> Void
+    static let normal: [MenuAction] = [.install, .diagnose, .restore, .homepage, .keyboard]
     static let advanced: [MenuAction] = [.selectApp, .setup, .connectionOnly]
 
-    init(root: URL, helper: URL, snapshot: @escaping () -> MenuSnapshot, openHomepage: @escaping () -> Bool) {
+    init(root: URL, helper: URL, snapshot: @escaping () -> MenuSnapshot, openHomepage: @escaping () -> Bool, keyboardStore: KeyProfileStore = KeyboardService.store, activateKeyboard: ((URL) throws -> Void)? = nil) {
         self.root = root; self.helper = helper; self.snapshot = snapshot; self.openHomepage = openHomepage
+        self.keyboardStore = keyboardStore
+        self.activateKeyboard = activateKeyboard ?? { try KeyboardService.startIfEnabled(wrapper: $0, executable: helper) }
     }
     static func run(root: URL) throws {
         guard let executable = Bundle.main.executableURL else { throw PatchError(message: "실행 도우미 경로를 찾지 못했습니다.") }
@@ -406,6 +419,13 @@ final class TerminalUI {
         }
     }
     private func perform(_ action: MenuAction, terminal: MenuTerminal) throws {
+        if action == .keyboard {
+            do {
+                guard let path = snapshot().wrapperPath else { throw PatchError(message: "먼저 DNF.app을 설치해 주세요.") }
+                try KeyboardEditor(wrapper: URL(fileURLWithPath:path), store:keyboardStore, activate:activateKeyboard).run(terminal:terminal)
+            } catch { showResult(title: action.title, success:false, log:[error.localizedDescription], terminal:terminal) }
+            return
+        }
         if action == .homepage {
             showResult(title: action.title, success: openHomepage(), log: ["브라우저에서 로그인하고 GAME START를 눌러 주세요."], terminal: terminal)
             return

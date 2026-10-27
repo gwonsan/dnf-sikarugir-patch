@@ -18,6 +18,14 @@
 - Final cleanup retained a verified ZIP of the temporary previous helper and removed that old app from Launch Services discovery; the default `neople` URL handler was verified to resolve to `~/Applications/DNF Web Launcher.app`. The installed keyboard preset equals its backup, and the agent is stopped after emergency-stop verification.
 - Remaining manual coverage: held-modifier focus transitions, game exit, long sessions and Intel hardware. Synthetic CGEvent tests are not proof of physical HID behavior beyond the separate user-assisted Caps check. No GitHub publication occurred. Private screenshots contain account/game details and remain ignored local test evidence; they are not documentation assets.
 
+## Installed DNF Command/Control separation — 2026-10-27
+
+- At the user's request, changed only the installed wrapper's `HKCU\Software\Wine\AppDefaults\DNF.exe\Mac Driver` values `LeftCommandIsCtrl` and `RightCommandIsCtrl` to `REG_SZ N`. A minimal backup of the original app-specific values is in the local Keyboard support folder. Global Mac Driver Command/Option values remain unchanged.
+- The running game was closed normally because Wine registry commands stalled while it was active. Import and both targeted registry queries succeeded after exit. Safari GAME START relaunched the selected character into town without reading or replaying authentication arguments.
+- Verified in the actual game's temporary shortcut-input field: left/right physical Control events were shown as `L_Ctrl` / `R_Ctrl`; left/right Command events were shown as `L_Alt` / `R_Alt`, not Ctrl. These native modifier events validate the Wine input path; this was not a physical user-keyboard test. Chat select-all was not used as proof because the game editor did not distinguish it reliably.
+- All temporary game shortcut edits were cancelled, and the original `H` assignment was visibly restored before closing settings. Unsent test text was erased; the original Korean input source was restored. No game key binding was applied or saved.
+- This follow-up is a local Wine setting change, separate from the bundled TUI keyboard profile. The installer and development ZIP do not automatically apply these two app-specific registry values yet. No source/runtime rebuild or GitHub publication was performed for this local setting.
+
 ## Interactive Rosetta installation — unreleased fix (2026-10-27)
 
 - Live diagnosis on the test Mac found `softwareupdate --install-rosetta` stopped in state `T`. Its process group differed from the terminal's foreground group; the TUI parent remained in the foreground. The Foundation `Process` launch path left the interactive agreement unable to read the terminal.

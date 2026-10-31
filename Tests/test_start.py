@@ -1,5 +1,4 @@
 import pathlib
-import shutil
 import subprocess
 import tempfile
 import unittest
@@ -7,11 +6,18 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
+def copy_command_fixture(source, destination):
+    if destination.is_dir():
+        destination = destination / source.name
+    script = source.read_text().replace('/usr/bin/arch', '/usr/bin/true').replace('/usr/sbin/softwareupdate', '/usr/bin/false')
+    destination.write_text(script)
+
+
 class StartCommandTests(unittest.TestCase):
     def test_rerun_without_downloaded_app_reaches_installer(self):
         with tempfile.TemporaryDirectory(prefix="DNF start ") as tmp:
             root = pathlib.Path(tmp)
-            shutil.copy2(ROOT / "시작.command", root)
+            copy_command_fixture(ROOT / "시작.command", root)
             binary = root / "DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
             binary.parent.mkdir(parents=True)
             # Replace the external installer so the test cannot modify the game or URL handler.
@@ -23,12 +29,23 @@ class StartCommandTests(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
 
 
+    def test_recovery_command_forwards_explicit_connection_only_option(self):
+        with tempfile.TemporaryDirectory(prefix="DNF restore ") as tmp:
+            root = pathlib.Path(tmp)
+            copy_command_fixture(ROOT / "복원.command", root)
+            binary = root / "DNF Web Launcher.app/Contents/MacOS/DNFWebLauncher"
+            binary.parent.mkdir(parents=True)
+            binary.write_text('#!/bin/bash\n[[ "$#" == 2 && "$1" == --uninstall && "$2" == --connection-only ]] || exit 99\nexit 42\n')
+            binary.chmod(0o755)
+            result = subprocess.run(["/bin/bash", str(root / "복원.command"), "--connection-only"], stdin=subprocess.DEVNULL, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 42)
+
     def test_install_commands_clear_only_themselves_and_helper_before_launch(self):
         for command in ["시작.command", "설치.command", "처음설치.command"]:
             with self.subTest(command=command), tempfile.TemporaryDirectory(prefix="DNF permission ") as tmp:
                 root = pathlib.Path(tmp)
                 script = root / command
-                shutil.copy2(ROOT / command, script)
+                copy_command_fixture(ROOT / command, script)
                 helper = root / "DNF Web Launcher.app"
                 binary = helper / "Contents/MacOS/DNFWebLauncher"
                 binary.parent.mkdir(parents=True)

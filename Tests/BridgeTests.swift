@@ -1,10 +1,12 @@
 import AppKit
 
 @main struct BridgeTests {
-    static func main() {
+    static func main() throws {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
-        let delegate = BridgeDelegate()
+        let support = FileManager.default.temporaryDirectory.appendingPathComponent("DNF bridge errors \(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: support) }
+        let delegate = BridgeDelegate(support: support) { throw PatchError(message: "fixture: no installed state") }
         app.delegate = delegate
         delegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
         guard !app.windows.contains(where: { $0.isVisible }) else {

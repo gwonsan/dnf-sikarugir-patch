@@ -6,6 +6,24 @@ import AppKit
         if let command = args.first, command.hasPrefix("--") {
             do {
                 switch command {
+                case "--keyboard-agent":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --keyboard-agent DNF.app") }
+                    let app = NSApplication.shared; app.setActivationPolicy(.accessory); app.finishLaunching()
+                    try KeyboardAgent(wrapper: URL(fileURLWithPath:args[1])).run()
+                case "--keyboard-permissions":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --keyboard-permissions DNF.app") }
+                    let app = NSApplication.shared; app.setActivationPolicy(.accessory); app.finishLaunching()
+                    KeyboardService.configurePermissions(wrapper:URL(fileURLWithPath:args[1]))
+                case "--keyboard-status":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --keyboard-status DNF.app") }
+                    print(KeyboardService.status(wrapper:URL(fileURLWithPath:args[1])))
+                case "--close-terminal":
+                    guard args.count == 2 else { return }
+                    try TerminalSession.closeCompletedWindow(tty: args[1])
+                case "--menu":
+                    guard args.count == 2 else { throw PatchError(message: "사용법: --menu 패치폴더") }
+                    try TerminalUI.run(root: URL(fileURLWithPath: args[1]).standardizedFileURL)
+
                 case "--prepare-ready", "--install-ready":
                     guard args.count > 1 else { throw PatchError(message: "동봉한 DNF.app 경로를 지정하세요.") }
                     let source = URL(fileURLWithPath: args[1]).standardizedFileURL
@@ -20,11 +38,19 @@ import AppKit
                         if command == "--create-wrapper" { try Bootstrap.createWrapper(wrapper) }
                         else { try Bootstrap.setup(wrapper, installer: args.count > 2 ? args[2] : nil) }
                     }
-                case "--install":
-                    let wrapper = try Installer.chooseWrapper(args.count > 1 ? args[1] : nil)
+                case "--install", "--install-select":
+                    let wrapper = try Installer.chooseWrapper(args.count > 1 ? args[1] : nil, forceSelection: command == "--install-select")
                     try PatchLock.withLock(directory: Installer.support) { try Installer.install(wrapper) }
                 case "--uninstall":
-                    try PatchLock.withLock(directory: Installer.support) { try Installer.uninstall() }
+                    guard args.count == 1 || (args.count == 2 && args[1] == "--connection-only") else {
+                        throw PatchError(message: "사용법: --uninstall [--connection-only]")
+                    }
+                    let keyboardWrapper = try? Installer.readState().wrapperPath
+                    try PatchLock.withLock(directory: Installer.support) { try Installer.uninstall(connectionOnly: args.count == 2) }
+                    if let keyboardWrapper {
+                        var profile = try KeyboardService.store.load(wrapper: URL(fileURLWithPath:keyboardWrapper))
+                        profile.enabled = false; try KeyboardService.store.save(profile)
+                    }
                 case "--diagnose":
                     let wrapper = args.count > 1 ? URL(fileURLWithPath: args[1]) : URL(fileURLWithPath: try Installer.readState().wrapperPath)
                     try Installer.diagnose(wrapper)

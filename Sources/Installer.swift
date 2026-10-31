@@ -79,12 +79,12 @@ enum Installer {
         return try run(executable, args, environment: process.environment)
     }
 
-    static func chooseWrapper(_ argument: String?) throws -> URL {
+    static func chooseWrapper(_ argument: String?, forceSelection: Bool = false) throws -> URL {
         if let argument { return URL(fileURLWithPath: argument).standardizedFileURL }
         let candidates = ["Applications/Sikarugir/DNF.app", "Applications/DNF.app"].map {
             fm.homeDirectoryForCurrentUser.appendingPathComponent($0)
         }.filter { makeLaunchProcess(request: "neople://patch-check", wrapper: $0) != nil }
-        if candidates.count == 1 { return candidates[0] }
+        if !forceSelection && candidates.count == 1 { return candidates[0] }
         NSApplication.shared.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSOpenPanel()
@@ -192,9 +192,7 @@ enum Installer {
         let staged = destination.deletingLastPathComponent().appendingPathComponent("DNF-patch-\(UUID().uuidString).app")
         try fm.copyItem(at: source, to: staged)
         defer { try? fm.removeItem(at: staged) }
-        guard try run(URL(fileURLWithPath: "/usr/bin/codesign"), ["--verify", "--deep", staged.path]) == 0 else {
-            throw PatchError(message: "패치 앱 서명 확인에 실패했습니다.")
-        }
+        try verifyHelperBundle(staged)
         if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
         try fm.moveItem(at: staged, to: destination)
         guard LSRegisterURL(destination as CFURL, true) == noErr,
@@ -207,22 +205,74 @@ enum Installer {
         print("설치 완료. 다운로드가 끝나면 런처를 종료하고 던파 홈페이지에서 GAME START를 눌러 주세요.")
     }
 
-    static func uninstall() throws {
+    static func verifyHelperBundle(_ staged: URL) throws {
+        guard staged.pathExtension == "app", (try? fm.destinationOfSymbolicLink(atPath:staged.path)) == nil else {
+            throw PatchError(message:"패치 도우미 복사본 경로가 올바르지 않습니다.")
+        }
+        // File providers can attach empty FinderInfo to copied app directories.
+        // Remove only this inert metadata, from this exact copy, without following links.
+        for attribute in ["com.apple.FinderInfo", "com.apple.ResourceFork"] {
+            guard try run(URL(fileURLWithPath:"/usr/bin/xattr"),["-drs",attribute,staged.path]) == 0 else {
+                throw PatchError(message:"패치 도우미의 Finder 메타데이터를 정리하지 못했습니다.")
+            }
+        }
+        guard try run(URL(fileURLWithPath:"/usr/bin/codesign"),["--verify","--deep","--strict",staged.path]) == 0 else {
+            throw PatchError(message:"패치 앱 서명 확인에 실패했습니다.")
+        }
+    }
+
+    static func uninstall(connectionOnly: Bool = false) throws {
         let state = try readState()
-        let wrapper = URL(fileURLWithPath: state.wrapperPath)
         guard !bridgeIsRunning() else {
             throw PatchError(message: "DNF Web Launcher를 종료한 뒤 복원해 주세요.")
         }
+        try restoreInstallation(state, stateFile: stateFile, destination: destination, connectionOnly: connectionOnly)
+    }
+
+    static func restoreFonts(_ wrapper: URL, _ state: PatchState) throws {
         let current = try registry(wrapper)
         try registry(wrapper, import: FontPatch.restoration(original: state.originalFonts, current: current))
+    }
+
+    static func restoreHandler(_ state: PatchState) throws {
         if handler() == patchBundleID, let previous = state.previousHandler, previous != patchBundleID {
             guard LSSetDefaultHandlerForURLScheme("neople" as CFString, previous as CFString) == noErr else {
                 throw PatchError(message: "이전 홈페이지 실행 연결을 복원하지 못했습니다. 백업은 유지됩니다.")
             }
         }
+    }
+
+    static func restoreInstallation(_ state: PatchState, stateFile: URL, destination: URL, connectionOnly: Bool = false,
+                                    restoreFonts: (URL, PatchState) throws -> Void = restoreFonts,
+                                    restoreHandler: (PatchState) throws -> Void = restoreHandler) throws {
+        let wrapper = URL(fileURLWithPath: state.wrapperPath)
+        let wrapperExists: Bool
+        do {
+            _ = try fm.attributesOfItem(atPath: wrapper.path)
+            wrapperExists = true
+        } catch CocoaError.fileReadNoSuchFile, CocoaError.fileNoSuchFile {
+            wrapperExists = false
+        }
+        let skipFonts = connectionOnly || !wrapperExists
+        if skipFonts {
+            let recovery = stateFile.deletingLastPathComponent().appendingPathComponent("Recovery")
+            try fm.createDirectory(at: recovery, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            let backup = recovery.appendingPathComponent("state-\(UUID().uuidString).plist")
+            try fm.copyItem(at: stateFile, to: backup)
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: backup.path)
+            print("폰트 복원을 건너뛰고 기존 설정 백업을 보관합니다: \(backup.path)")
+        } else {
+            do { try restoreFonts(wrapper, state) }
+            catch {
+                throw PatchError(message: "폰트 복원에 실패했습니다. 기존 설치 기록은 유지됩니다. 앱이 손상되어 연결과 설치 기록만 정리하려면 터미널에서 /bin/bash ./복원.command --connection-only를 실행하세요. " + error.localizedDescription)
+            }
+        }
+        try restoreHandler(state)
         if Bundle(url: destination)?.bundleIdentifier == patchBundleID { try fm.removeItem(at: destination) }
         try fm.removeItem(at: stateFile)
-        print("복원 완료. 최초 폰트 설정을 복원했고 이후 바꾼 설정은 유지했습니다.")
+        print(skipFonts
+              ? "연결 복구 완료. 설치 기록을 정리했으므로 새 경로에 설치할 수 있습니다. 게임과 폰트 파일은 변경하지 않았습니다."
+              : "복원 완료. 최초 폰트 설정을 복원했고 이후 바꾼 설정은 유지했습니다.")
     }
 
     static func diagnose(_ wrapper: URL) throws {

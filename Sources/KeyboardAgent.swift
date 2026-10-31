@@ -60,6 +60,13 @@ final class KeyboardAgent {
     private let wrapper: URL
     private var profile: KeyProfile
     private var state: KeyMappingState
+    private var karabiner: KarabinerRuntime?
+    private var backendNote = "자체 매핑"
+    private var focusGeneration: UInt64 = 0
+    private var focusObservers: [NSObjectProtocol] = []
+    private var alone = KeyAloneState()
+    private var repeats = KeyRepeatState(delay:NSEvent.keyRepeatDelay,interval:NSEvent.keyRepeatInterval)
+    private var nativeBindings: [KeyBinding] { karabiner?.bindings ?? profile.bindings }
     private var target: pid_t = 0
     private var checkedPID: pid_t = 0
     private var checkedAt = Date.distantPast
@@ -101,6 +108,7 @@ final class KeyboardAgent {
         defer { close(descriptor) }
         guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else { return }
         defer { flock(descriptor, LOCK_UN) }
+        configureBackend()
         let types: [CGEventType] = [.keyDown,.keyUp,.flagsChanged,.mouseMoved,.leftMouseDown,.leftMouseUp,.rightMouseDown,.rightMouseUp,.otherMouseDown,.otherMouseUp,.leftMouseDragged,.rightMouseDragged,.scrollWheel]
         let mask = types.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
         guard let tap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap, place: .headInsertEventTap, options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, context in
@@ -115,6 +123,24 @@ final class KeyboardAgent {
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         setCaptureEnabled(false)
         sourceObserver = DistributedNotificationCenter.default().addObserver(forName: Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String), object: nil, queue: .main) { [weak self] _ in self?.inputSourceChanged() }
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didActivateApplicationNotification,NSWorkspace.willSleepNotification,NSWorkspace.sessionDidResignActiveNotification] {
+            focusObservers.append(center.addObserver(forName:name,object:nil,queue:.main) { [weak self] _ in
+                guard let self else { return }; self.leaveTarget(); self.checkedAt = .distantPast
+            })
+        }
+        let leaseTimer = Timer(timeInterval:0.1,repeats:true) { [weak self] _ in
+            guard let self, let runtime = self.karabiner else { return }
+            runtime.renew(attested:self.target > 0 && NSWorkspace.shared.frontmostApplication?.processIdentifier == self.target)
+            _ = self.checkBackendHealth()
+        }
+        RunLoop.main.add(leaseTimer,forMode:.common)
+        let repeatTimer = Timer(timeInterval:0.01,repeats:true) { [weak self] _ in
+            guard let self,self.karabiner != nil,self.target > 0,NSWorkspace.shared.frontmostApplication?.processIdentifier == self.target,self.checkBackendHealth(),
+                  let press = self.repeats.due(now:ProcessInfo.processInfo.systemUptime) else { return }
+            self.emit(self.state.deliver(source:press.source,target:press.target,down:true,repeating:true),pid:self.target,rawFlags:0,repeating:true)
+        }
+        RunLoop.main.add(repeatTimer,forMode:.common)
         let timer = Timer(timeInterval: 0.4, repeats: true) { [weak self] _ in self?.refresh() }
         RunLoop.main.add(timer, forMode: .common)
         for number in [SIGTERM, SIGINT, SIGHUP] {
@@ -124,7 +150,8 @@ final class KeyboardAgent {
             source.resume(); signalSources.append(source)
         }
         defer {
-            timer.invalidate(); leaveTarget()
+            timer.invalidate(); leaseTimer.invalidate(); repeatTimer.invalidate(); leaveTarget(); karabiner?.close()
+            focusObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
             if let sourceObserver { DistributedNotificationCenter.default().removeObserver(sourceObserver) }
             signalSources.forEach { $0.cancel() }
             CFMachPortInvalidate(tap)
@@ -134,15 +161,30 @@ final class KeyboardAgent {
         while active { _ = RunLoop.current.run(mode: .default, before: Date(timeIntervalSinceNow: 0.2)) }
     }
 
+    private func configureBackend() {
+        karabiner?.close(); karabiner = nil
+        backendNote = "자체 매핑"
+        if profile.backend != .native {
+            do { karabiner = try KarabinerRuntime(profile:profile,wrapper:wrapper)
+                backendNote = "Karabiner 변환 \(profile.bindings.count)개 · 던파 전용 전달"
+            } catch { backendNote = "자체 매핑 · " + error.localizedDescription }
+        }
+        state = KeyMappingState(bindings:nativeBindings)
+    }
     private func report(_ message: String, running: Bool = true) {
         if let data = try? JSONEncoder().encode(KeyboardStatus(updated: Date(), message: message, running: running)) {
             try? data.write(to: KeyboardService.statusURL(wrapper: wrapper), options: .atomic)
         }
     }
+    private func checkBackendHealth() -> Bool {
+        guard let runtime = karabiner,!runtime.healthy else { return true }
+        stopMessage = runtime.failureMessage; leaveTarget(); active = false
+        return false
+    }
     private func refresh() {
         do {
             let latest = try KeyboardService.store.load(wrapper: wrapper)
-            if latest != profile { leaveTarget(); profile = latest; state = KeyMappingState(bindings: latest.bindings); checkedAt = .distantPast }
+            if latest != profile { leaveTarget(); profile = latest; configureBackend(); checkedAt = .distantPast }
             guard latest.enabled, KeyboardService.permitted else { active = false; return }
         } catch { stopMessage = "키 매핑 파일 오류 · 입력 보정 중지"; active = false; return }
         let front = NSWorkspace.shared.frontmostApplication
@@ -153,13 +195,14 @@ final class KeyboardAgent {
             let name = front?.executableURL?.lastPathComponent.lowercased() ?? ""
             if pid > 0 && (name.contains("wine") || front?.localizedName?.lowercased().contains("dnf") == true) {
                 attestationInFlight = true
+                let generation = focusGeneration
                 // DNF can map thousands of pack files. Never block the event-tap run loop on lsof.
                 DispatchQueue.global(qos:.utility).async { [weak self] in
                     guard let self else { return }
                     let accepted = self.attest(pid)
                     DispatchQueue.main.async {
                         self.attestationInFlight = false
-                        guard self.active, NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+                        guard self.active, generation == self.focusGeneration, NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
                         if accepted {
                             if self.target != pid { self.enterTarget(pid) }
                             self.seenGame = true; self.gamePID = pid; self.lastGame = Date()
@@ -172,7 +215,7 @@ final class KeyboardAgent {
         if target != 0 { lastGame = Date(); restoreHardwareCapsIfNeeded() }
         if seenGame && target == 0 && Date().timeIntervalSince(lastGame) > 8 && kill(gamePID,0) != 0 && errno == ESRCH { active = false }
         if !seenGame && Date().timeIntervalSince(started) > 3 * 60 * 60 { active = false }
-        report(target == 0 ? "던파 포커스 대기 · 다른 앱에는 적용 안 함" : "던파에 적용 중 · Ctrl+Option+Esc 긴급 중지")
+        report(target == 0 ? "던파 포커스 대기 · \(backendNote)" : "던파 적용 중 · \(backendNote) · Ctrl+Option+Esc 중지")
     }
     private func attest(_ pid: pid_t) -> Bool {
         let identity = Process(); identity.executableURL = URL(fileURLWithPath: "/bin/ps")
@@ -200,17 +243,22 @@ final class KeyboardAgent {
     private func enterTarget(_ pid: pid_t) {
         target = pid
         let initiallyHeld = Set(KeyCatalog.keys.map(\.code).filter { $0 != 57 && CGEventSource.keyState(.hidSystemState, key: CGKeyCode($0)) })
-        state = KeyMappingState(bindings: profile.bindings, initiallyHeld: initiallyHeld)
+        state = KeyMappingState(bindings: nativeBindings, initiallyHeld: initiallyHeld)
         if let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() {
             sourcesByID[sourceID(source)] = source
             sourceGuard = KeyInputSourceGuard(source:sourceID(source))
         }
         capsAtEntry = hardwareCaps()
-        if state.usesCapsLock, !startHID() {
-            stopMessage = "Caps Lock 물리 입력을 읽지 못했습니다. 입력 모니터링 권한을 확인해 주세요."
+        if karabiner == nil, state.usesCapsLock, !startHID() {
+            stopMessage = "Caps Lock 장치 접근 실패 · Karabiner 실행/충돌 또는 입력 모니터링 권한 확인 · \(backendNote)"
             active = false; return
         }
+        if let runtime = karabiner {
+            do { try runtime.beginSession { [weak self] message in self?.receive(message) } }
+            catch { stopMessage = "Karabiner 세션 준비 실패 · " + error.localizedDescription; active = false; return }
+        }
         setCaptureEnabled(true)
+        karabiner?.renew(attested:true)
     }
     private func setCaptureEnabled(_ enabled: Bool) {
         // Disabling our own tap also queues tapDisabledByUserInput on macOS.
@@ -219,6 +267,7 @@ final class KeyboardAgent {
         if let tap { CGEvent.tapEnable(tap:tap,enable:enabled) }
     }
     private func leaveTarget() {
+        focusGeneration &+= 1; karabiner?.invalidate(); repeats.clear(); alone.clear()
         setCaptureEnabled(false)
         if let hid {
             IOHIDManagerUnscheduleFromRunLoop(hid, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
@@ -272,6 +321,7 @@ final class KeyboardAgent {
             if target != 0 && NSWorkspace.shared.frontmostApplication?.processIdentifier != target { leaveTarget() }
             return Unmanaged.passUnretained(event)
         }
+        guard checkBackendHealth() else { return Unmanaged.passUnretained(event) }
         let raw = event.flags.rawValue
         let code = UInt16(clamping: event.getIntegerValueField(.keyboardEventKeycode))
         if type == .keyDown, code == 53, raw & 0xc0000 == 0xc0000 {
@@ -285,6 +335,17 @@ final class KeyboardAgent {
             let pressed = raw & mod.side != 0
             down = pressed
         }
+        if let down, karabiner != nil {
+            // User-command messages carry transformed targets. Never remap a raw
+            // event again (including CGEvents that bypass Karabiner entirely).
+            // Raw events can be a pre-session held key's release, or synthetic
+            // events that bypass Karabiner. Deliver identity, never its user mapping.
+            let intercept = state.intercepts(code,down:down)
+            let outputs = state.deliver(source:code,target:.key(code),down:down,repeating:event.getIntegerValueField(.keyboardEventAutorepeat) != 0)
+            if intercept { emit(outputs,pid:target,rawFlags:raw,repeating:event.getIntegerValueField(.keyboardEventAutorepeat) != 0); return nil }
+            event.flags = CGEventFlags(rawValue:state.rewriteFlags(raw))
+            return Unmanaged.passUnretained(event)
+        }
         if let down {
             let intercept = state.intercepts(code, down:down)
             let outputs = state.handle(code, down: down, repeating: event.getIntegerValueField(.keyboardEventAutorepeat) != 0)
@@ -292,6 +353,22 @@ final class KeyboardAgent {
         }
         event.flags = CGEventFlags(rawValue: state.rewriteFlags(raw))
         return Unmanaged.passUnretained(event)
+    }
+    private func receive(_ message:KarabinerDeliveryMessage) {
+        guard target > 0,NSWorkspace.shared.frontmostApplication?.processIdentifier == target else { return }
+        if message.emergency { suspended = true; leaveTarget(); active = false; return }
+        if message.alone {
+            if alone.karabinerVerdict(message.source,held:state.owns(message.source)) { toggleInputSource() }
+            return
+        }
+        if message.target == .toggleInputSource && message.down { alone.begin(message.source) }
+        var outputs = state.deliver(source:message.source,target:message.target,down:message.down)
+        if message.target == .toggleInputSource && !message.down {
+            if alone.nativeVerdict(message.source,eligible:outputs.contains(.inputSource)) { toggleInputSource() }
+            outputs.removeAll { $0 == .inputSource }
+        }
+        repeats.update(source:message.source,target:message.target,down:message.down && state.owns(message.source),now:ProcessInfo.processInfo.systemUptime)
+        emit(outputs,pid:target,rawFlags:0)
     }
     private func emit(_ outputs: [MappedKeyEvent], pid: pid_t, rawFlags: UInt64, repeating: Bool = false) {
         guard pid > 0 else { return }
@@ -309,11 +386,7 @@ final class KeyboardAgent {
             case .caps(let locked): code = 57; down = locked; flags = locked ? flags | 0x10000 : flags & ~UInt64(0x10000)
             case .inputSource: continue
             }
-            guard let event = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(code), keyDown: down) else { continue }
-            if KeyCatalog.modifiers[code] != nil || code == 57 { event.type = .flagsChanged }
-            event.flags = CGEventFlags(rawValue: flags)
-            event.setIntegerValueField(.keyboardEventAutorepeat, value: down && repeating ? 1 : 0)
-            event.setIntegerValueField(.eventSourceUserData, value: marker)
+            guard let event = KeyEventDelivery.make(key:code,down:down,flags:flags,marker:marker,repeating:repeating) else { continue }
             event.postToPid(pid)
         }
     }
@@ -322,7 +395,7 @@ final class KeyboardAgent {
         return Unmanaged<CFString>.fromOpaque(value).takeUnretainedValue() as String
     }
     private func inputSourceChanged() {
-        guard target > 0, NSWorkspace.shared.frontmostApplication?.processIdentifier == target,
+        guard karabiner == nil, target > 0, NSWorkspace.shared.frontmostApplication?.processIdentifier == target,
               let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else { return }
         let id = sourceID(current); sourcesByID[id] = current
         if let restore = sourceGuard.sourceChanged(id,now:ProcessInfo.processInfo.systemUptime) { restoreSource(restore) }
@@ -333,14 +406,35 @@ final class KeyboardAgent {
         _ = TISSelectInputSource(source)
     }
     private func toggleInputSource() {
-        guard let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
+        guard target > 0,NSWorkspace.shared.frontmostApplication?.processIdentifier == target,
+              let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
               let sources = TISCreateInputSourceList([kTISPropertyInputSourceIsSelectCapable: true] as CFDictionary, false)?.takeRetainedValue() as? [TISInputSource] else { return }
         let korean = sourceID(current).hasPrefix("com.apple.inputmethod.Korean")
         let selected = sources.first { source in
             let id = sourceID(source)
             return korean ? ["com.apple.keylayout.ABC", "com.apple.keylayout.US"].contains(id) : id == "com.apple.inputmethod.Korean.2SetKorean"
         }
-        if let selected, TISSelectInputSource(selected) == noErr { sourcesByID[sourceID(selected)] = selected; sourceGuard.intentionalSwitch(sourceID(selected)) }
+        guard let selected,TISSelectInputSource(selected) == noErr else { return }
+        sourcesByID[sourceID(selected)] = selected; sourceGuard.intentionalSwitch(sourceID(selected))
+        // TIS alone can change the menu indicator while a fresh Wine input
+        // context still types Latin. A previous-source round trip activates the
+        // real input context and returns to the explicitly selected source.
+        // Use the user's configured shortcut and PID-only balanced events;
+        // never post a global shortcut or alter keyboard preferences.
+        let configuration = UserDefaults(suiteName:"com.apple.symbolichotkeys")?.dictionary(forKey:"AppleSymbolicHotKeys")
+        guard let shortcut = KeyInputSourceShortcut.previous(configuration:configuration) else {
+            if !backendNote.contains("한영 단축키") { backendNote += " · 한영 단축키 설정 확인 필요" }
+            return
+        }
+        let pid = target
+        for _ in 0..<2 {
+            guard target == pid,NSWorkspace.shared.frontmostApplication?.processIdentifier == pid,checkBackendHealth() else { return }
+            // Complete every started chord, including its releases, to the same
+            // PID even if focus changes during the very short posting loop.
+            for stroke in shortcut.strokes(baseFlags:state.rewriteFlags(0)) {
+                KeyEventDelivery.make(key:stroke.key,down:stroke.down,flags:stroke.flags,marker:marker)?.postToPid(pid)
+            }
+        }
     }
     private func withHIDConnection<T>(_ operation: (io_connect_t) -> T) -> T? {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOHIDSystem"))
@@ -357,7 +451,7 @@ final class KeyboardAgent {
         } ?? nil
     }
     private func restoreHardwareCapsIfNeeded() {
-        guard state.maps(57), let original = capsAtEntry, let current = hardwareCaps(), current != original else { return }
+        guard karabiner == nil, state.maps(57), let original = capsAtEntry, let current = hardwareCaps(), current != original else { return }
         _ = withHIDConnection { IOHIDSetModifierLockState($0, Int32(kIOHIDCapsLockState), original) }
     }
 }

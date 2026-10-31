@@ -4,7 +4,8 @@ task_root="$(cd "$(dirname "$0")/.." && pwd)"
 task_build="$task_root/build"
 task_name="DNF-Sikarugir-Patch-dev"
 mkdir -p "$task_root/dist"
-task_stage="$(mktemp -d "$task_root/dist/.patch-stage.XXXXXX")"
+# Sign outside File Provider folders: Finder metadata can be added during signing.
+task_stage="$(mktemp -d -t dnf-patch-stage)"
 trap 'rm -rf "$task_stage"' EXIT
 task_dist="$task_stage/$task_name"
 task_app="$task_dist/설치 자료/DNF Web Launcher.app"
@@ -14,7 +15,7 @@ for task_arch in arm64 x86_64; do
   xcrun swiftc -O -target "$task_arch-apple-macos14.6" -module-cache-path "$task_build/module-cache" \
     "$task_root/Sources/Wine.swift" "$task_root/Sources/FontPatch.swift" \
     "$task_root/Sources/PatchLock.swift" "$task_root/Sources/Installer.swift" \
-    "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Sources/Prepared.swift" "$task_root/Sources/Bridge.swift" "$task_root/Sources/KeyMapping.swift" "$task_root/Sources/KeyboardAgent.swift" "$task_root/Sources/KeyboardUI.swift" "$task_root/Sources/TerminalUI.swift" "$task_root/Sources/InteractiveCommand.swift" "$task_root/Sources/TerminalSession.swift" "$task_root/Sources/App.swift" \
+    "$task_root/Sources/WrapperFactory.swift" "$task_root/Sources/Bootstrap.swift" "$task_root/Sources/Prepared.swift" "$task_root/Sources/Bridge.swift" "$task_root/Sources/KeyMapping.swift" "$task_root/Sources/KeyEventDelivery.swift" "$task_root/Sources/Karabiner.swift" "$task_root/Sources/KarabinerDelivery.swift" "$task_root/Sources/KarabinerSocket.swift" "$task_root/Sources/KarabinerRuntime.swift" "$task_root/Sources/KeyboardAgent.swift" "$task_root/Sources/GameSettings.swift" "$task_root/Sources/GameSettingsUI.swift" "$task_root/Sources/KeyboardUI.swift" "$task_root/Sources/TerminalUI.swift" "$task_root/Sources/InteractiveCommand.swift" "$task_root/Sources/TerminalSession.swift" "$task_root/Sources/App.swift" \
     -framework AppKit -framework CoreServices -framework Carbon -framework IOKit -o "$task_build/launcher-$task_arch"
 done
 xcrun lipo -create "$task_build/launcher-arm64" "$task_build/launcher-x86_64" -output "$task_app/Contents/MacOS/DNFWebLauncher"
@@ -41,6 +42,7 @@ codesign --force --sign - "$task_app"
 codesign --verify --deep --strict "$task_app"
 cp "$task_root/던파.command" "$task_root/README.md" "$task_root/LICENSE" "$task_root/THIRD_PARTY.md" "$task_dist/"
 ditto "$task_root/docs/images" "$task_dist/docs/images"
+cp "$task_root/docs/VALIDATION.md" "$task_dist/docs/VALIDATION.md"
 chmod +x "$task_dist/"*.command
 ditto -c -k --keepParent --norsrc --noextattr "$task_dist" "$task_stage/$task_name.zip"
 # Only development outputs are replaced. Fresh staging excludes legacy commands.

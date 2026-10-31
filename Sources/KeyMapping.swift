@@ -55,11 +55,27 @@ struct KeyBinding: Codable, Equatable {
     var target: KeyTarget
 }
 
+enum KeyboardBackend: String, Codable, CaseIterable {
+    case automatic, karabiner, native
+    var label: String { switch self { case .automatic: return "자동 선택"; case .karabiner: return "Karabiner 우선"; case .native: return "자체 매핑" } }
+}
+
 struct KeyProfile: Codable, Equatable {
     var version = 1
     var wrapperPath: String
     var enabled = false
+    var backend: KeyboardBackend = .automatic
     var bindings: [KeyBinding] = []
+    init(wrapperPath: String) { self.wrapperPath = wrapperPath }
+    private enum CodingKeys: String, CodingKey { case version, wrapperPath, enabled, backend, bindings }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        version = try values.decode(Int.self,forKey:.version)
+        wrapperPath = try values.decode(String.self,forKey:.wrapperPath)
+        enabled = try values.decode(Bool.self,forKey:.enabled)
+        backend = try values.decodeIfPresent(KeyboardBackend.self,forKey:.backend) ?? .automatic
+        bindings = try values.decode([KeyBinding].self,forKey:.bindings)
+    }
     var usesCapsLock: Bool { bindings.contains { $0.source == 57 || $0.target == .key(57) } }
     mutating func useKoreanPreset() {
         for binding in [KeyBinding(source: 61, target: .toggleInputSource), KeyBinding(source: 57, target: .key(57))] {
@@ -142,9 +158,17 @@ final class KeyMappingState {
         return bindings[source] != nil
     }
     func maps(_ source: UInt16) -> Bool { bindings[source] != nil }
+    func owns(_ source:UInt16) -> Bool { held[source] != nil && !ignoredUntilRelease.contains(source) }
     var usesCapsLock: Bool { bindings[57] != nil || bindings.values.contains(.key(57)) }
     var activeModifiers: [UInt16] { counts.filter { $0.value > 0 && KeyCatalog.modifiers[$0.key] != nil }.map(\.key) }
     func handle(_ source: UInt16, down: Bool, repeating: Bool = false) -> [MappedKeyEvent] {
+        transition(source,down:down,repeating:repeating,deliveredTarget:nil)
+    }
+    /// Karabiner already chose this target. This path only owns balanced PID delivery.
+    func deliver(source:UInt16,target:KeyTarget,down:Bool,repeating:Bool = false) -> [MappedKeyEvent] {
+        transition(source,down:down,repeating:repeating,deliveredTarget:target)
+    }
+    private func transition(_ source:UInt16,down:Bool,repeating:Bool,deliveredTarget:KeyTarget?) -> [MappedKeyEvent] {
         let otherKeysWereHeld = !physicalDown.subtracting([source]).isEmpty
         if down { physicalDown.insert(source) } else { physicalDown.remove(source) }
         if ignoredUntilRelease.contains(source) {
@@ -159,7 +183,7 @@ final class KeyMappingState {
         }
         if down {
             for (key, action) in held where key != source && action == .toggleInputSource { interrupted.insert(key) }
-            guard let target = bindings[source] else { return [] }
+            guard let target = deliveredTarget ?? bindings[source] else { return [] }
             if held[source] != nil {
                 if repeating, case .key(let code) = target, code != 57, KeyCatalog.modifiers[code] == nil { return [.down(code)] }
                 return []
@@ -257,4 +281,41 @@ struct KeyInputSourceGuard {
 /// Delayed self-pause notifications must not stop capture that has already resumed.
 enum KeyCaptureLifecycle {
     static func shouldStop(requested: Bool, tapEnabled: Bool) -> Bool { requested && !tapEnabled }
+}
+
+/// Repeat belongs to the target PID, never to a held global virtual HID key.
+struct KeyRepeatState {
+    struct Press { let source:UInt16; let target:KeyTarget; var deadline:TimeInterval }
+    let delay:TimeInterval
+    let interval:TimeInterval
+    private var presses: [Press] = []
+    mutating func update(source:UInt16,target:KeyTarget,down:Bool,now:TimeInterval) {
+        if !down { presses.removeAll { $0.source == source }; return }
+        guard !presses.contains(where: { $0.source == source }),case .key(let code) = target,
+              code != 57,KeyCatalog.modifiers[code] == nil else { return }
+        presses.append(Press(source:source,target:target,deadline:now+max(0.1,delay)))
+    }
+    mutating func due(now:TimeInterval) -> Press? {
+        guard let last = presses.indices.last,now >= presses[last].deadline else { return nil }
+        let press = presses[last]; presses[last].deadline = now+max(0.01,interval); return press
+    }
+    mutating func clear() { presses.removeAll() }
+}
+
+/// Both Karabiner's physical-key verdict and native prior-held-key verdict are
+/// required, because raw CGEvents and user-command datagrams have different queues.
+struct KeyAloneState {
+    private var eligible = Set<UInt16>()
+    private var core = Set<UInt16>()
+    mutating func begin(_ source:UInt16) { eligible.remove(source); core.remove(source) }
+    mutating func nativeVerdict(_ source:UInt16,eligible allowed:Bool) -> Bool {
+        guard allowed else { begin(source); return false }
+        if core.remove(source) != nil { self.eligible.remove(source); return true }
+        eligible.insert(source); return false
+    }
+    mutating func karabinerVerdict(_ source:UInt16,held:Bool) -> Bool {
+        if eligible.remove(source) != nil { core.remove(source); return true }
+        if held { core.insert(source) }; return false
+    }
+    mutating func clear() { eligible.removeAll(); core.removeAll() }
 }

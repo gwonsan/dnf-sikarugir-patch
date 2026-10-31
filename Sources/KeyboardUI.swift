@@ -29,14 +29,17 @@ final class KeyboardEditor {
             selected = min(selected, max(0,profile.bindings.count - 1))
             let first = max(0,min(selected-visible/2,max(0,profile.bindings.count-visible)))
             let rows = profile.bindings.enumerated().dropFirst(first).prefix(visible).map { index,binding in
-                "\(index == selected ? "›" : " ") \(KeyCatalog.name(binding.source)) → \(binding.target.label)"
+                "\(index == selected ? "›" : " ") \(KeyCatalog.name(binding.source)) → \(binding.target.label) [\(profile.backend == .native ? "자체" : "K → 던파")]"
             }
             var left = ["내 키 매핑  \(profile.enabled ? "켜짐" : "꺼짐")\(profile != saved ? " · 변경됨" : "")", ""]
             left += rows.isEmpty ? ["아직 매핑이 없습니다.", "A 추가 또는 R 한/영 프리셋"] : rows
-            let right = ["던파 안에서만 적용", "", "오른쪽 Option → 한/영 전환", "Caps Lock → Caps Lock", "R 키로 프리셋을 불러옵니다.", "", "상태", profile.enabled ? KeyboardService.status(wrapper: wrapper) : "비활성 · 기본 키 입력 사용", "", "Command / Option의 출력은", "현재 Wine 키 설정을 따릅니다.", "Control / Alt를 직접 선택할 수 있습니다."]
+            let status = profile.enabled ? KeyboardService.status(wrapper:wrapper) : "비활성 · 기본 키 입력 사용"
+            let right = ["던파 안에서만 적용", "", "처리 방식: \(profile.backend.label)", KarabinerRuntime.detection,
+                         "", "Karabiner 연결 성공 시", "Karabiner 변환 → 던파 전용 전달", "", "실제 상태", status,
+                         "", "Command·Option 해석과 그래픽은", "메인 메뉴 6 게임 설정에서 변경", "Caps·한영·반복은 전용 보정기로 완료"]
             var lines = ["DNF   /   키보드 매핑", String(repeating: "━", count: width), ""]
-            lines += columns(left: left, right: width >= 68 ? right : [right[0], "상태: " + right[7]], width: width)
-            lines += ["", TerminalText.fit(note,width), "↑↓ 선택  Enter 변경  A 추가  D 삭제  R 프리셋", "1 켜기/끄기  2 초기화  S 저장  P 권한  Esc 뒤로"]
+            lines += columns(left: left, right: width >= 68 ? right : [right[0],"처리 방식: " + profile.backend.label,"상태: " + status], width: width)
+            lines += ["", TerminalText.fit(note,width), "↑↓ 선택  Enter 변경  A 추가  D 삭제  R 프리셋", "1 켜기/끄기  2 초기화  3 처리 방식  S 저장  P 권한"]
             let frame = "\(size)" + lines.joined(separator:"\n")
             if frame != lastFrame || !terminal.rich { terminal.draw(lines); lastFrame = frame }
             let key = terminal.key()
@@ -56,6 +59,10 @@ final class KeyboardEditor {
             case .retry: profile.useKoreanPreset(); note = "한/영·Caps Lock 프리셋 불러옴 · 1로 켠 뒤 S 저장"
             case .number(0): profile.enabled.toggle()
             case .number(1): profile.bindings.removeAll(); profile.enabled = false; note = "초기화 준비됨 · S 저장 전까지 기존 설정 유지"
+            case .number(2):
+                let all = KeyboardBackend.allCases
+                profile.backend = all[(all.firstIndex(of:profile.backend)!+1)%all.count]
+                note = "처리 방식 변경됨 · S 저장"
             case .save:
                 do {
                     try store.save(profile); saved = profile

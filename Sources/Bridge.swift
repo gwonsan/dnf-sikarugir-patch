@@ -3,8 +3,10 @@ import AppKit
 final class BridgeDelegate: NSObject, NSApplicationDelegate {
     private let support: URL
     private let readState: () throws -> PatchState
+    private let settings: GameSettingsService
 
-    init(support: URL = Installer.support, readState: @escaping () throws -> PatchState = Installer.readState) {
+    init(support: URL = Installer.support, settings:GameSettingsService? = nil, readState: @escaping () throws -> PatchState = Installer.readState) {
+        self.settings = settings ?? GameSettingsService(directory:support.appendingPathComponent("Keyboard/GameSettings"))
         self.support = support
         self.readState = readState
         super.init()
@@ -81,8 +83,18 @@ final class BridgeDelegate: NSObject, NSApplicationDelegate {
         for url in urls {
             do {
                 // Shared leases permit multiple launches but exclude installation and restoration.
-                let lease = try PatchLock.acquire(directory: support, shared: true)
+                var lease = try PatchLock.acquire(directory: support, shared: true)
                 let state = try readState()
+                let wrapper = URL(fileURLWithPath:state.wrapperPath)
+                if try settings.hasPending(wrapper:wrapper) {
+                    lease.release()
+                    try PatchLock.withLock(directory:support) {
+                        guard try readState().wrapperPath == state.wrapperPath else { throw PatchError(message:"설치 위치가 변경됐습니다. 다시 GAME START를 눌러 주세요.") }
+                        _ = try settings.applyPending(wrapper:wrapper)
+                    }
+                    lease = try PatchLock.acquire(directory:support,shared:true)
+                    guard try readState().wrapperPath == state.wrapperPath else { throw PatchError(message:"설치 위치가 변경됐습니다. 다시 GAME START를 눌러 주세요.") }
+                }
                 guard let process = makeLaunchProcess(request: url.absoluteString, wrapper: URL(fileURLWithPath: state.wrapperPath)) else {
                     throw PatchError(message: "실행 요청이 올바르지 않거나 Wine/네오플 플러그인을 찾을 수 없습니다.")
                 }
